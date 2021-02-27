@@ -53,10 +53,13 @@ proc fetchStr(req: Request): (string, seq[string]) =
   if req.url.scheme == "https":
     var ctx =
       try:
-        let certFile = getCurrentDir() / "cacert.pem"
-        echo certFile
-        echo existsFile(certFile)
-        newContext(verifyMode = CVerifyPeer, certFile = certFile)
+
+        # let certFile = getCurrentDir() / "cacert.pem"
+        # echo certFile
+        # echo existsFile(certFile)
+        # newContext(verifyMode = CVerifyPeer, certFile = certFile)
+
+        newContext(verifyMode = CVerifyPeer)
       except:
         var message = getCurrentExceptionMsg()
         raise newException(PuppyError, message)
