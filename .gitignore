@@ -9,3 +9,5 @@ nimcache
 *.pdb
 *.ilk
 .*
+
+cacert.pem
