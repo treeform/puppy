@@ -2,6 +2,8 @@ import os, net, urlly, parseutils, strutils
 
 export urlly
 
+const cacertData = staticRead("cacert.pem")
+
 const CRLF = "\r\n"
 
 type
@@ -54,6 +56,10 @@ proc fetchStr(req: Request): (string, seq[string]) =
     var ctx =
       try:
 
+        let caCertPath = getAppDir() / "cacert.pem"
+        if not fileExists(caCertPath):
+          writeFile(caCertPath, cacertData)
+
         # let certFile = getCurrentDir() / "cacert.pem"
         # echo certFile
         # echo existsFile(certFile)
@@ -93,8 +99,8 @@ proc fetchStr(req: Request): (string, seq[string]) =
       break
     elif lineLower.startsWith("content-length:"):
       contentLength = parseInt(line.split(" ")[1])
-    elif lineLower.startsWith("x-uncompressed-content-length:"):
-      contentLength = parseInt(line.split(" ")[1])
+    # elif lineLower.startsWith("x-uncompressed-content-length:"):
+    #   contentLength = parseInt(line.split(" ")[1])
     elif lineLower == "transfer-encoding: chunked":
       chunked = true
 
@@ -155,16 +161,19 @@ proc fetch*(url: string, headers: seq[(string, string)]): string =
   let res = req.fetch()
   return res.body
 
-when defined(windows) and defined(ssl):
-  let caCertPath = getAppDir() / "cacert.pem"
-  if not fileExists(caCertPath):
-    echo caCertPath
-    let cmd = """powershell -Command "Invoke-WebRequest -outf """ &
-      caCertPath &
-      """ http://curl.se/ca/cacert.pem""""
-    echo cmd
-    let code = execShellCmd(
-      cmd
-    )
-    if code != 0:
-      raise newException(PuppyError, "Could not download cacert.pem")
+
+
+
+# when defined(windows) and defined(ssl):
+#   let caCertPath = getAppDir() / "cacert.pem"
+#   if not fileExists(caCertPath):
+#     echo caCertPath
+#     let cmd = """powershell -Command "Invoke-WebRequest -outf """ &
+#       caCertPath &
+#       """ https://curl.se/ca/cacert.pem""""
+#     echo cmd
+#     let code = execShellCmd(
+#       cmd
+#     )
+#     if code != 0:
+#       raise newException(PuppyError, "Could not download cacert.pem")
