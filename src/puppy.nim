@@ -1,4 +1,5 @@
-import net, urlly, strutils
+import net, strutils, urlly
+
 export urlly
 
 const CRLF = "\r\n"
