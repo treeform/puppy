@@ -1,4 +1,5 @@
-import net, urlly, strutils
+import net, strutils, urlly
+
 export urlly
 
 const CRLF = "\r\n"
@@ -23,7 +24,7 @@ proc newRequest*(): Request =
   result = Request()
   result.headers["User-Agent"] = "nim/puppy"
 
-proc `$`(req: Request): string =
+proc `$`*(req: Request): string =
   ## Turns a req into the HTTP wire format.
   var path = req.url.path
   if path == "":
@@ -38,7 +39,7 @@ proc `$`(req: Request): string =
     result.add header[0] & ": " & header[1] & CRLF
   result.add CRLF
 
-proc merge*(a: var seq[(string, string)], b: seq[(string, string)]) =
+proc merge(a: var seq[(string, string)], b: seq[(string, string)]) =
   for headerB in b:
     var found = false
     for headerA in a.mitems:
@@ -48,15 +49,15 @@ proc merge*(a: var seq[(string, string)], b: seq[(string, string)]) =
     if not found:
       a.add(headerB)
 
-when not defined(libcurl) and defined(windows):
+when defined(windows) and not defined(libcurl):
   # WIN32 API
   import winim/com
 
   proc fetch*(req: Request): Response =
     # Fetch using win com API
-    var res = Response()
+    result = Response()
 
-    var obj = CreateObject("WinHttp.WinHttpRequest.5.1")
+    let obj = CreateObject("WinHttp.WinHttpRequest.5.1")
     try:
       obj.open(req.verb.toUpperAscii(), $req.url)
       for (k, v) in req.headers:
@@ -66,23 +67,20 @@ when not defined(libcurl) and defined(windows):
       else:
         obj.send()
     except:
-      res.error = getCurrentExceptionMsg()
-    res.url = req.url
-    if res.error.len == 0:
-      res.code = parseInt(obj.status)
-      res.body = $obj.responseText
+      result.error = getCurrentExceptionMsg()
+    result.url = req.url
+    if result.error.len == 0:
+      result.code = parseInt(obj.status)
+      result.body = $obj.responseText
 
       let headers = $obj.getAllResponseHeaders()
       for headerLine in headers.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
-          res.headers.add((arr[0].strip(), arr[1].strip()))
-
-    return res
+          result.headers.add((arr[0].strip(), arr[1].strip()))
 
 else:
   # LIBCURL linux/mac
-
   import libcurl
 
   proc curlWriteFn(
@@ -96,6 +94,7 @@ else:
     result = size * count
 
   proc fetch*(req: Request): Response =
+    result = Response()
 
     let curl = easy_init()
 
@@ -125,34 +124,32 @@ else:
     discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
 
     let ret = curl.easy_perform()
-    var res = Response()
-    res.url = req.url
+    result.url = req.url
 
     if ret == E_OK:
       var httpCode: uint32
       discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
-      res.code = httpCode.int
+      result.code = httpCode.int
       for headerLine in headerData[].split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
-          res.headers.add((arr[0].strip(), arr[1].strip()))
-      res.body = bodyData[]
+          result.headers.add((arr[0].strip(), arr[1].strip()))
+      result.body = bodyData[]
     else:
-      res.error = $easy_strerror(ret)
+      result.error = $easy_strerror(ret)
 
     curl.easy_cleanup()
     slist_free_all(headerList)
-    return res
 
 proc fetch*(url: string, verb = "get"): string =
-  var req = newRequest()
+  let req = newRequest()
   req.url = parseUrl(url)
   req.verb = verb
   let res = req.fetch()
   return res.body
 
 proc fetch*(url: string, verb = "get", headers: seq[(string, string)]): string =
-  var req = newRequest()
+  let req = newRequest()
   req.url = parseUrl(url)
   req.verb = verb
   req.headers.merge(headers)
