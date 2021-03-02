@@ -4,11 +4,11 @@ Getting content from a url should be as easy as readFile. Puppy does not use Nim
 
 `nimble install puppy`
 
-Because it uses the windows API there is no need to ship extra *.dlls or cacert.pem.
+Because it uses the windows/linux/macOS system API there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` fag..
 
 Libcurl and cacert.pem is installed by default on most desktop or server linux and macOS.
 
-Everything is handled by normal system APIs!
+Everything is handled by normal system APIs native to each OS!
 
 *Will not support async*
 
@@ -32,12 +32,13 @@ echo fetch(
 ```
 
 Need a more complex API?
-* verbs
-* headers
-* response code
-* response headers
+* verbs: GET, POST, PUT, UPDATE, DELETE..
+* headers: User-Agent, Content-Type..
+* response code: 200, 404, 500..
+* response headers: Content-Type..
+* error: timeout, DNS fail ...
 
-Use request/responses instead.
+Use request/response instead.
 
 ```nim
   Request* = ref object
