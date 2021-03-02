@@ -11,3 +11,4 @@ nimcache
 .*
 
 cacert.pem
+*.dll
