@@ -2,7 +2,10 @@ import puppy
 
 # test simple string API
 
-doAssert fetch("http://www.istrolid.com", headers = @[("Auth", "1")]).len != 0
+doAssert fetch(
+  "http://www.istrolid.com",
+  headers = @[Header(key: "User-Agent", value: "Nim 1.0")]
+).len != 0
 doAssert fetch("http://neverssl.com/").len != 0
 doAssert fetch("https://blog.istrolid.com/").len != 0
 doAssert fetch("https://not-a-real-site.xyz/").len == 0
@@ -23,7 +26,7 @@ block:
   let res = fetch(Request(
     url: parseUrl("http://www.istrolid.com"),
     verb: "get",
-    headers: @[("Auth", "1")]
+    headers: @[Header(key: "Auth", value: "1")]
   ))
   echo "res.error: ", res.error
   echo "res.code: ", res.code
@@ -48,3 +51,17 @@ block:
   doAssert res.code == 200
   doAssert res.headers.len > 0
   doAssert res.body != ""
+
+# test headers
+
+block:
+  let req = newRequest()
+  req.headers["Content-Type"] = "application/json"
+  doAssert req.headers["content-type"] == "application/json"
+
+block:
+  let req = Request() # No default headers
+  req.headers["Content-Type"] = "application/json"
+  req.headers["content-type"] = "application/json"
+  doAssert req.headers.len == 1
+  doAssert req.headers["Content-TYPE"] == "application/json"

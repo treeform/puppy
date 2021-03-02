@@ -27,7 +27,7 @@ import puppy
 
 echo fetch(
   "http://neverssl.com/",
-  headers = @[("User-Agent", "Nim 1.0"])
+  headers = @[Header(key: "User-Agent", value: "Nim 1.0")]
 )
 ```
 
@@ -41,18 +41,18 @@ Need a more complex API?
 Use request/response instead.
 
 ```nim
-  Request* = ref object
-    url*: Url
-    headers*: seq[(string, string)]
-    verb*: string
-    body*: string
+Request* = ref object
+  url*: Url
+  headers*: seq[Header]
+  verb*: string
+  body*: string
 
-  Response* = ref object
-    url*: Url
-    headers*: seq[(string, string)]
-    code*: int
-    body*: string
-    error*: string
+Response* = ref object
+  url*: Url
+  headers*: seq[Header]
+  code*: int
+  body*: string
+  error*: string
 ```
 
 Usage example:
@@ -61,7 +61,7 @@ Usage example:
 let req = Request(
   url: parseUrl("http://www.istrolid.com"),
   verb: "get",
-  headers: @[("Auth", "1")]
+  headers: @[Header(key: "Auth", value: "1"))]
 )
 let res = fetch(req)
 echo res.error

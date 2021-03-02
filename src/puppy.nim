@@ -7,18 +7,38 @@ const CRLF = "\r\n"
 type
   PuppyError* = object of IOError ## Raised if an operation fails.
 
+  Header* = object
+    key*: string
+    value*: string
+
   Request* = ref object
     url*: Url
-    headers*: seq[(string, string)]
+    headers*: seq[Header]
     verb*: string
     body*: string
 
   Response* = ref object
     url*: Url
-    headers*: seq[(string, string)]
+    headers*: seq[Header]
     code*: int
     body*: string
     error*: string
+
+func `[]`*(headers: seq[Header], key: string): string =
+  ## Get a key out of headers. Not case sensitive.
+  ## Use a for loop to get multiple keys.
+  for header in headers:
+    if header.key.toLowerAscii() == key.toLowerAscii():
+      return header.value
+
+func `[]=`*(headers: var seq[Header], key, value: string) =
+  ## Sets a key in the headers. Not case sensitive.
+  ## If key is not there appends a new key-value pair at the end.
+  for header in headers.mitems:
+    if header.key.toLowerAscii() == key.toLowerAscii():
+      header.value = value
+      return
+  headers.add(Header(key: key, value: value))
 
 proc newRequest*(): Request =
   result = Request()
@@ -36,20 +56,20 @@ proc `$`*(req: Request): string =
   result.add "GET " & path & " HTTP/1.1" & CRLF
   result.add "Host: " & req.url.hostname & CRLF
   for header in req.headers:
-    result.add header[0] & ": " & header[1] & CRLF
+    result.add header.key & ": " & header.value & CRLF
   result.add CRLF
 
-proc merge(a: var seq[(string, string)], b: seq[(string, string)]) =
+proc merge(a: var seq[Header], b: seq[Header]) =
   for headerB in b:
     var found = false
     for headerA in a.mitems:
-      if headerA[0] == headerB[0]:
-        headerA[1] = headerB[1]
+      if headerA.key.toLowerAscii() == headerB.key.toLowerAscii():
+        headerA.value = headerB.value
         found = true
     if not found:
       a.add(headerB)
 
-when defined(windows) and not defined(libcurl):
+when defined(windows) and not defined(puppyLibcurl):
   # WIN32 API
   import winim/com
 
@@ -60,8 +80,8 @@ when defined(windows) and not defined(libcurl):
     let obj = CreateObject("WinHttp.WinHttpRequest.5.1")
     try:
       obj.open(req.verb.toUpperAscii(), $req.url)
-      for (k, v) in req.headers:
-        obj.setRequestHeader(k, v)
+      for header in req.headers:
+        obj.setRequestHeader(header.key, header.value)
       if req.body.len > 0:
         obj.send(req.body)
       else:
@@ -77,7 +97,7 @@ when defined(windows) and not defined(libcurl):
       for headerLine in headers.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
-          result.headers.add((arr[0].strip(), arr[1].strip()))
+          result.headers[arr[0].strip()] = arr[1].strip()
 
 else:
   # LIBCURL linux/mac
@@ -102,8 +122,8 @@ else:
     discard curl.easy_setopt(OPT_CUSTOMREQUEST, req.verb.toUpperAscii())
 
     var headerList: Pslist
-    for (k, v) in req.headers:
-      headerList = slist_append(headerList, k & ": " & v)
+    for header in req.headers:
+      headerList = slist_append(headerList, header.key & ": " & header.value)
     discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
     if req.body.len > 0:
@@ -133,7 +153,7 @@ else:
       for headerLine in headerData[].split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
-          result.headers.add((arr[0].strip(), arr[1].strip()))
+          result.headers[arr[0].strip()] = arr[1].strip()
       result.body = bodyData[]
     else:
       result.error = $easy_strerror(ret)
@@ -148,7 +168,7 @@ proc fetch*(url: string, verb = "get"): string =
   let res = req.fetch()
   return res.body
 
-proc fetch*(url: string, verb = "get", headers: seq[(string, string)]): string =
+proc fetch*(url: string, verb = "get", headers: seq[Header]): string =
   let req = newRequest()
   req.url = parseUrl(url)
   req.verb = verb
