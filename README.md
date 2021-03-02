@@ -1,12 +1,12 @@
 ## Puppy - Fetch url resources via HTTP and HTTPS.
 
-Getting content from a url should be as easy as readFile. Puppy does not use Nim's HTTP stack instead it uses `win32 WinHttp` api on windows and `libcurl` on linux and macOS.
+Getting content from a url should be as easy as `readFile`.
 
 `nimble install puppy`
 
-Because it uses the windows/linux/macOS system API there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` flag..
+Puppy does not use Nim's HTTP stack, instead it uses `win32 WinHttp` API on Windows and `libcurl` on Linux and macOS. Because Puppy uses system APIs, there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` flag.
 
-Libcurl and cacert.pem is installed by default on most desktop or server linux and macOS.
+Libcurl and cacert.pem are installed by default on most desktop or server Linux as well as on macOS.
 
 Everything is handled by normal system APIs native to each OS!
 
