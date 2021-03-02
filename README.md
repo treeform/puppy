@@ -4,7 +4,7 @@ Getting content from a url should be as easy as readFile. Puppy does not use Nim
 
 `nimble install puppy`
 
-Because it uses the windows/linux/macOS system API there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` fag..
+Because it uses the windows/linux/macOS system API there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` flag..
 
 Libcurl and cacert.pem is installed by default on most desktop or server linux and macOS.
 
