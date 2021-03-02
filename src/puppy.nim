@@ -1,23 +1,23 @@
-import os, net, urlly, parseutils, strutils
-
+import net, urlly, strutils
 export urlly
-
-const cacertData = staticRead("cacert.pem")
 
 const CRLF = "\r\n"
 
 type
-
   PuppyError* = object of IOError ## Raised if an operation fails.
 
   Request* = ref object
     url*: Url
     headers*: seq[(string, string)]
+    verb*: string
+    body*: string
 
   Response* = ref object
     url*: Url
+    headers*: seq[(string, string)]
     code*: int
     body*: string
+    error*: string
 
 proc newRequest*(): Request =
   result = Request()
@@ -48,132 +48,113 @@ proc merge*(a: var seq[(string, string)], b: seq[(string, string)]) =
     if not found:
       a.add(headerB)
 
-proc fetchStr(req: Request): (string, seq[string]) =
-  ## Fetches a URL and returns header and chunks.
+when not defined(libcurl) and defined(windows):
+  # WIN32 API
+  import winim/com
 
-  var socket = newSocket()
-  if req.url.scheme == "https":
-    var ctx =
-      try:
+  proc fetch*(req: Request): Response =
+    # Fetch using win com API
+    var res = Response()
 
-        let caCertPath = getAppDir() / "cacert.pem"
-        if not fileExists(caCertPath):
-          writeFile(caCertPath, cacertData)
-
-        # let certFile = getCurrentDir() / "cacert.pem"
-        # echo certFile
-        # echo existsFile(certFile)
-        # newContext(verifyMode = CVerifyPeer, certFile = certFile)
-
-        newContext(verifyMode = CVerifyPeer)
-      except:
-        var message = getCurrentExceptionMsg()
-        raise newException(PuppyError, message)
-
-    #wrapSocket(ctx, socket)
-    socket.connect(req.url.hostname, Port(443))
+    var obj = CreateObject("WinHttp.WinHttpRequest.5.1")
     try:
-      ctx.wrapConnectedSocket(
-        socket, handshakeAsClient, req.url.hostname)
+      obj.open(req.verb.toUpperAscii(), $req.url)
+      for (k, v) in req.headers:
+        obj.setRequestHeader(k, v)
+      if req.body.len > 0:
+        obj.send(req.body)
+      else:
+        obj.send()
     except:
-      var message = getCurrentExceptionMsg()
-      if "error:14094410:SSL" in message:
-        message = "Not Secure: Domain failed SSL certificate check."
-      raise newException(PuppyError, message)
+      res.error = getCurrentExceptionMsg()
+    res.url = req.url
+    if res.error.len == 0:
+      res.code = parseInt(obj.status)
+      res.body = $obj.responseText
 
-  else:
-    socket.connect(req.url.hostname, Port(80))
+      let headers = $obj.getAllResponseHeaders()
+      for headerLine in headers.split(CRLF):
+        let arr = headerLine.split(":", 1)
+        if arr.len == 2:
+          res.headers.add((arr[0].strip(), arr[1].strip()))
 
-  socket.send($req)
+    return res
 
-  var
-    chunked: bool
-    contentLength: int
+else:
+  # LIBCURL linux/mac
 
-  var res = ""
-  while true:
-    let line = socket.recvLine()
-    res.add line & CRLF
-    let lineLower = line.toLowerAscii()
-    if line == CRLF:
-      break
-    elif lineLower.startsWith("content-length:"):
-      contentLength = parseInt(line.split(" ")[1])
-    # elif lineLower.startsWith("x-uncompressed-content-length:"):
-    #   contentLength = parseInt(line.split(" ")[1])
-    elif lineLower == "transfer-encoding: chunked":
-      chunked = true
+  import libcurl
 
-  var chunks: seq[string]
-  if chunked:
-    while true:
-      var chunkLenStr: string
-      while true:
-        var readChar: char
-        let readLen = socket.recv(readChar.addr, 1)
-        doAssert readLen == 1
-        chunkLenStr.add(readChar)
-        if chunkLenStr.endsWith(CRLF):
-          break
-      if chunkLenStr == CRLF:
-        break
-      var chunkLen: int
-      discard parseHex(chunkLenStr, chunkLen)
-      if chunkLen == 0:
-        break
-      var chunk = newString(chunkLen)
-      let readLen = socket.recv(chunk[0].addr, chunkLen)
-      doAssert readLen == chunkLen
-      chunks.add(chunk)
-      var endStr = newString(2)
-      let readLen2 = socket.recv(endStr[0].addr, 2)
-      doAssert endStr == CRLF
-  else:
-      var chunk = newString(contentLength)
-      let readLen = socket.recv(chunk[0].addr, contentLength)
-      doAssert readLen == contentLength
-      chunks.add(chunk[0..^3])
+  proc curlWriteFn(
+    buffer: cstring,
+    size: int,
+    count: int,
+    outstream: pointer
+  ): int {.cdecl.} =
+    var outbuf = cast[ref string](outstream)
+    outbuf[].add($buffer)
+    result = size * count
 
-  return (res, chunks)
+  proc fetch*(req: Request): Response =
 
-proc fetch(req: Request): Response =
-  let (resBody, chunks) = fetchStr(req)
+    let curl = easy_init()
 
-  var res = Response()
-  res.url = req.url
+    discard curl.easy_setopt(OPT_URL, $req.url)
+    discard curl.easy_setopt(OPT_CUSTOMREQUEST, req.verb.toUpperAscii())
 
-  let resLines = resBody.split(CRLF)
-  let headerArr = resLines[0].split(" ")
-  res.code = parseInt(headerArr[1])
-  res.body = join(chunks)
-  return res
+    var headerList: Pslist
+    for (k, v) in req.headers:
+      headerList = slist_append(headerList, k & ": " & v)
+    discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
-proc fetch*(url: string): string =
+    if req.body.len > 0:
+      discard curl.easy_setopt(OPT_POSTFIELDS, req.body)
+
+    # Setup writers.
+    var
+      headerData: ref string = new string
+      bodyData: ref string = new string
+    discard curl.easy_setopt(OPT_WRITEDATA, bodyData)
+    discard curl.easy_setopt(OPT_WRITEFUNCTION, curlWriteFn)
+    discard curl.easy_setopt(OPT_HEADERDATA, headerData)
+    discard curl.easy_setopt(OPT_HEADERFUNCTION, curlWriteFn)
+    # On windows look for cacert.pem.
+    when defined(windows):
+      discard curl.easy_setopt(OPT_CAINFO, "cacert.pem")
+    # Follow redirects by default.
+    discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
+
+    let ret = curl.easy_perform()
+    var res = Response()
+    res.url = req.url
+
+    if ret == E_OK:
+      var httpCode: uint32
+      discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
+      res.code = httpCode.int
+      for headerLine in headerData[].split(CRLF):
+        let arr = headerLine.split(":", 1)
+        if arr.len == 2:
+          res.headers.add((arr[0].strip(), arr[1].strip()))
+      res.body = bodyData[]
+    else:
+      res.error = $easy_strerror(ret)
+
+    curl.easy_cleanup()
+    slist_free_all(headerList)
+    return res
+
+proc fetch*(url: string, verb = "get"): string =
   var req = newRequest()
   req.url = parseUrl(url)
+  req.verb = verb
   let res = req.fetch()
   return res.body
 
-proc fetch*(url: string, headers: seq[(string, string)]): string =
+proc fetch*(url: string, verb = "get", headers: seq[(string, string)]): string =
   var req = newRequest()
   req.url = parseUrl(url)
+  req.verb = verb
   req.headers.merge(headers)
   let res = req.fetch()
   return res.body
-
-
-
-
-# when defined(windows) and defined(ssl):
-#   let caCertPath = getAppDir() / "cacert.pem"
-#   if not fileExists(caCertPath):
-#     echo caCertPath
-#     let cmd = """powershell -Command "Invoke-WebRequest -outf """ &
-#       caCertPath &
-#       """ https://curl.se/ca/cacert.pem""""
-#     echo cmd
-#     let code = execShellCmd(
-#       cmd
-#     )
-#     if code != 0:
-#       raise newException(PuppyError, "Could not download cacert.pem")
