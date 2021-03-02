@@ -1,4 +1,4 @@
-import net, strutils, urlly
+import net, strutils, urlly, zippy
 
 export urlly
 
@@ -80,6 +80,11 @@ when defined(windows) and not defined(puppyLibcurl):
     let obj = CreateObject("WinHttp.WinHttpRequest.5.1")
     try:
       obj.open(req.verb.toUpperAscii(), $req.url)
+
+      if req.headers["accept-encoding"].len == 0:
+        # If there isn't a specific accept-encoding specified, enable gzip
+        req.headers["accept-encoding"] = "gzip"
+
       for header in req.headers:
         obj.setRequestHeader(header.key, header.value)
       if req.body.len > 0:
@@ -91,13 +96,16 @@ when defined(windows) and not defined(puppyLibcurl):
     result.url = req.url
     if result.error.len == 0:
       result.code = parseInt(obj.status)
-      result.body = $obj.responseText
+      result.body = string(fromVariant[COMBinary](obj.responseBody))
 
       let headers = $obj.getAllResponseHeaders()
       for headerLine in headers.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
           result.headers[arr[0].strip()] = arr[1].strip()
+
+      if result.headers["content-encoding"].toLowerAscii() == "gzip":
+        result.body = uncompress(result.body, dfGzip)
 
 else:
   # LIBCURL linux/mac
@@ -109,8 +117,13 @@ else:
     count: int,
     outstream: pointer
   ): int {.cdecl.} =
-    var outbuf = cast[ref string](outstream)
-    outbuf[].add($buffer)
+    if size != 1:
+      raise newException(PuppyError, "Unexpected curl write callback size")
+    let
+      outbuf = cast[ref string](outstream)
+      i = outbuf[].len
+    outbuf[].setLen(outbuf[].len + count)
+    copyMem(outbuf[][i].addr, buffer, count)
     result = size * count
 
   proc fetch*(req: Request): Response =
@@ -122,8 +135,12 @@ else:
     discard curl.easy_setopt(OPT_CUSTOMREQUEST, req.verb.toUpperAscii())
 
     var headerList: Pslist
+    if req.headers["accept-encoding"].len == 0:
+      # If there isn't a specific accept-encoding specified, enable gzip
+      req.headers["accept-encoding"] = "gzip"
     for header in req.headers:
       headerList = slist_append(headerList, header.key & ": " & header.value)
+
     discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
     if req.body.len > 0:
@@ -155,6 +172,8 @@ else:
         if arr.len == 2:
           result.headers[arr[0].strip()] = arr[1].strip()
       result.body = bodyData[]
+      if result.headers["Content-Encoding"] == "gzip":
+        result.body = uncompress(result.body, dfGzip)
     else:
       result.error = $easy_strerror(ret)
 
