@@ -40,10 +40,6 @@ func `[]=`*(headers: var seq[Header], key, value: string) =
       return
   headers.add(Header(key: key, value: value))
 
-proc newRequest*(): Request =
-  result = Request()
-  result.headers["User-Agent"] = "nim/puppy"
-
 proc `$`*(req: Request): string =
   ## Turns a req into the HTTP wire format.
   var path = req.url.path
@@ -69,6 +65,13 @@ proc merge(a: var seq[Header], b: seq[Header]) =
     if not found:
       a.add(headerB)
 
+proc addDefaultHeaders(req: Request) =
+  if req.headers["user-agent"].len == 0:
+    req.headers["user-agent"] = "nim/puppy"
+  if req.headers["accept-encoding"].len == 0:
+    # If there isn't a specific accept-encoding specified, enable gzip
+    req.headers["accept-encoding"] = "gzip"
+
 when defined(windows) and not defined(puppyLibcurl):
   # WIN32 API
   import winim/com
@@ -81,9 +84,7 @@ when defined(windows) and not defined(puppyLibcurl):
     try:
       obj.open(req.verb.toUpperAscii(), $req.url)
 
-      if req.headers["accept-encoding"].len == 0:
-        # If there isn't a specific accept-encoding specified, enable gzip
-        req.headers["accept-encoding"] = "gzip"
+      req.addDefaultHeaders()
 
       for header in req.headers:
         obj.setRequestHeader(header.key, header.value)
@@ -134,10 +135,9 @@ else:
     discard curl.easy_setopt(OPT_URL, $req.url)
     discard curl.easy_setopt(OPT_CUSTOMREQUEST, req.verb.toUpperAscii())
 
+    req.addDefaultHeaders()
+
     var headerList: Pslist
-    if req.headers["accept-encoding"].len == 0:
-      # If there isn't a specific accept-encoding specified, enable gzip
-      req.headers["accept-encoding"] = "gzip"
     for header in req.headers:
       headerList = slist_append(headerList, header.key & ": " & header.value)
 
@@ -181,14 +181,14 @@ else:
     slist_free_all(headerList)
 
 proc fetch*(url: string, verb = "get"): string =
-  let req = newRequest()
+  let req = Request()
   req.url = parseUrl(url)
   req.verb = verb
   let res = req.fetch()
   return res.body
 
 proc fetch*(url: string, verb = "get", headers: seq[Header]): string =
-  let req = newRequest()
+  let req = Request()
   req.url = parseUrl(url)
   req.verb = verb
   req.headers.merge(headers)
