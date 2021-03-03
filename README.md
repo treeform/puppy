@@ -6,9 +6,7 @@ Getting content from a url should be as easy as `readFile`.
 
 Puppy does not use Nim's HTTP stack, instead it uses `win32 WinHttp` API on Windows and `libcurl` on Linux and macOS. Because Puppy uses system APIs, there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` flag.
 
-Libcurl and cacert.pem are installed by default on most desktop or server Linux as well as on macOS.
-
-Everything is handled by normal system APIs native to each OS!
+Furthermore, Puppy supports gzip transparently right out of the box.
 
 *Will not support async*
 
