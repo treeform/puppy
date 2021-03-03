@@ -1,4 +1,4 @@
-import net, strutils, urlly
+import net, strutils, urlly, zippy
 
 export urlly
 
@@ -40,10 +40,6 @@ func `[]=`*(headers: var seq[Header], key, value: string) =
       return
   headers.add(Header(key: key, value: value))
 
-proc newRequest*(): Request =
-  result = Request()
-  result.headers["User-Agent"] = "nim/puppy"
-
 proc `$`*(req: Request): string =
   ## Turns a req into the HTTP wire format.
   var path = req.url.path
@@ -69,6 +65,13 @@ proc merge(a: var seq[Header], b: seq[Header]) =
     if not found:
       a.add(headerB)
 
+proc addDefaultHeaders(req: Request) =
+  if req.headers["user-agent"].len == 0:
+    req.headers["user-agent"] = "nim/puppy"
+  if req.headers["accept-encoding"].len == 0:
+    # If there isn't a specific accept-encoding specified, enable gzip
+    req.headers["accept-encoding"] = "gzip"
+
 when defined(windows) and not defined(puppyLibcurl):
   # WIN32 API
   import winim/com
@@ -80,6 +83,9 @@ when defined(windows) and not defined(puppyLibcurl):
     let obj = CreateObject("WinHttp.WinHttpRequest.5.1")
     try:
       obj.open(req.verb.toUpperAscii(), $req.url)
+
+      req.addDefaultHeaders()
+
       for header in req.headers:
         obj.setRequestHeader(header.key, header.value)
       if req.body.len > 0:
@@ -91,13 +97,16 @@ when defined(windows) and not defined(puppyLibcurl):
     result.url = req.url
     if result.error.len == 0:
       result.code = parseInt(obj.status)
-      result.body = $obj.responseText
+      result.body = string(fromVariant[COMBinary](obj.responseBody))
 
       let headers = $obj.getAllResponseHeaders()
       for headerLine in headers.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
           result.headers[arr[0].strip()] = arr[1].strip()
+
+      if result.headers["content-encoding"].toLowerAscii() == "gzip":
+        result.body = uncompress(result.body, dfGzip)
 
 else:
   # LIBCURL linux/mac
@@ -109,8 +118,13 @@ else:
     count: int,
     outstream: pointer
   ): int {.cdecl.} =
-    var outbuf = cast[ref string](outstream)
-    outbuf[].add($buffer)
+    if size != 1:
+      raise newException(PuppyError, "Unexpected curl write callback size")
+    let
+      outbuf = cast[ref string](outstream)
+      i = outbuf[].len
+    outbuf[].setLen(outbuf[].len + count)
+    copyMem(outbuf[][i].addr, buffer, count)
     result = size * count
 
   proc fetch*(req: Request): Response =
@@ -121,9 +135,12 @@ else:
     discard curl.easy_setopt(OPT_URL, $req.url)
     discard curl.easy_setopt(OPT_CUSTOMREQUEST, req.verb.toUpperAscii())
 
+    req.addDefaultHeaders()
+
     var headerList: Pslist
     for header in req.headers:
       headerList = slist_append(headerList, header.key & ": " & header.value)
+
     discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
     if req.body.len > 0:
@@ -155,6 +172,8 @@ else:
         if arr.len == 2:
           result.headers[arr[0].strip()] = arr[1].strip()
       result.body = bodyData[]
+      if result.headers["Content-Encoding"] == "gzip":
+        result.body = uncompress(result.body, dfGzip)
     else:
       result.error = $easy_strerror(ret)
 
@@ -162,14 +181,14 @@ else:
     slist_free_all(headerList)
 
 proc fetch*(url: string, verb = "get"): string =
-  let req = newRequest()
+  let req = Request()
   req.url = parseUrl(url)
   req.verb = verb
   let res = req.fetch()
   return res.body
 
 proc fetch*(url: string, verb = "get", headers: seq[Header]): string =
-  let req = newRequest()
+  let req = Request()
   req.url = parseUrl(url)
   req.verb = verb
   req.headers.merge(headers)
