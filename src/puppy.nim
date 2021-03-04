@@ -180,17 +180,11 @@ else:
     curl.easy_cleanup()
     slist_free_all(headerList)
 
-proc fetch*(url: string, verb = "get"): string =
-  let req = Request()
-  req.url = parseUrl(url)
-  req.verb = verb
-  let res = req.fetch()
-  return res.body
-
-proc fetch*(url: string, verb = "get", headers: seq[Header]): string =
+proc fetch*(url: string, verb = "get", headers = newSeq[Header]()): string =
   let req = Request()
   req.url = parseUrl(url)
   req.verb = verb
   req.headers.merge(headers)
   let res = req.fetch()
-  return res.body
+  if res.code == 200:
+    return res.body
