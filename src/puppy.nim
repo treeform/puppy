@@ -97,9 +97,9 @@ when defined(windows) and not defined(puppyLibcurl):
     result.url = req.url
     if result.error.len == 0:
       result.code = parseInt(obj.status)
-      try:
+      if obj.responseBody != VT_EMPTY:
         result.body = string(fromVariant[COMBinary](obj.responseBody))
-      except:
+      else:
         result.error = "Could not read response body."
         return
 
