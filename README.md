@@ -2,6 +2,8 @@
 
 Getting content from a url should be as easy as `readFile`.
 
+![Github Actions](https://github.com/treeform/puppy/workflows/Github%20Actions/badge.svg)
+
 `nimble install puppy`
 
 Puppy does not use Nim's HTTP stack, instead it uses `win32 WinHttp` API on Windows and `libcurl` on Linux and macOS. Because Puppy uses system APIs, there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` flag.
