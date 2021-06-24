@@ -1,3 +1,5 @@
+<img src="docs/puppyBanner.png">
+
 ## Puppy - Fetch url resources via HTTP and HTTPS.
 
 Getting content from a url should be as easy as `readFile`.
