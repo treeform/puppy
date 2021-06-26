@@ -211,7 +211,7 @@ proc newRequest*(
   result.url = parseUrl(url)
   result.verb = verb
   result.headers.merge(headers)
-  result.timeout = 60
+  result.timeout = timeout
 
 proc fetch*(url: string, verb = "get", headers = newSeq[Header]()): string =
   let req = newRequest(url, verb, headers)
