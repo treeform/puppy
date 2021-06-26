@@ -14,6 +14,7 @@ type
   Request* = ref object
     url*: Url
     headers*: seq[Header]
+    timeout*: float32
     verb*: string
     body*: string
 
@@ -88,12 +89,19 @@ when defined(windows) and not defined(puppyLibcurl):
 
       for header in req.headers:
         obj.setRequestHeader(header.key, header.value)
+
+      if req.timeout == 0:
+        req.timeout = 60
+      let ms = int(req.timeout * 1000)
+      obj.SetTimeouts(ms, ms, ms, ms)
+
       if req.body.len > 0:
         obj.send(req.body)
       else:
         obj.send()
     except:
       result.error = getCurrentExceptionMsg()
+
     result.url = req.url
     if result.error.len == 0:
       result.code = parseInt(obj.status)
@@ -143,6 +151,10 @@ else:
     discard curl.easy_setopt(OPT_URL, $req.url)
     discard curl.easy_setopt(OPT_CUSTOMREQUEST, req.verb.toUpperAscii())
 
+    if req.timeout == 0:
+      req.timeout = 60
+    discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
+
     req.addDefaultHeaders()
 
     var headerList: Pslist
@@ -188,11 +200,21 @@ else:
     curl.easy_cleanup()
     slist_free_all(headerList)
 
+proc newRequest*(
+  url: string,
+  verb = "get",
+  headers = newSeq[Header](),
+  timeout: float32 = 60
+): Request =
+  ## Allocates a new request object with defaults.
+  result = Request()
+  result.url = parseUrl(url)
+  result.verb = verb
+  result.headers.merge(headers)
+  result.timeout = 60
+
 proc fetch*(url: string, verb = "get", headers = newSeq[Header]()): string =
-  let req = Request()
-  req.url = parseUrl(url)
-  req.verb = verb
-  req.headers.merge(headers)
+  let req = newRequest(url, verb, headers)
   let res = req.fetch()
   if res.code == 200:
     return res.body
