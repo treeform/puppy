@@ -128,6 +128,12 @@ else:
   # LIBCURL linux/mac
   import libcurl
 
+  type
+    StringWrap = object
+      ## As strings are value objects they need
+      ## some sort of wrapper to be passed to C.
+      str: string
+
   proc curlWriteFn(
     buffer: cstring,
     size: int,
@@ -136,11 +142,10 @@ else:
   ): int {.cdecl.} =
     if size != 1:
       raise newException(PuppyError, "Unexpected curl write callback size")
-    let
-      outbuf = cast[ref string](outstream)
-      i = outbuf[].len
-    outbuf[].setLen(outbuf[].len + count)
-    copyMem(outbuf[][i].addr, buffer, count)
+    var outbuf = cast[ptr StringWrap](outstream)
+    let i = outbuf.str.len
+    outbuf.str.setLen(outbuf.str.len + count)
+    copyMem(outbuf.str[i].addr, buffer, count)
     result = size * count
 
   proc fetch*(req: Request): Response =
@@ -168,30 +173,35 @@ else:
 
     # Setup writers.
     var
-      headerData: ref string = new string
-      bodyData: ref string = new string
-    discard curl.easy_setopt(OPT_WRITEDATA, bodyData)
+      headerWrap: StringWrap
+      bodyWrap: StringWrap
+    discard curl.easy_setopt(OPT_WRITEDATA, bodyWrap.addr)
     discard curl.easy_setopt(OPT_WRITEFUNCTION, curlWriteFn)
-    discard curl.easy_setopt(OPT_HEADERDATA, headerData)
+    discard curl.easy_setopt(OPT_HEADERDATA, headerWrap.addr)
     discard curl.easy_setopt(OPT_HEADERFUNCTION, curlWriteFn)
+
     # On windows look for cacert.pem.
     when defined(windows):
       discard curl.easy_setopt(OPT_CAINFO, "cacert.pem")
     # Follow redirects by default.
     discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
 
-    let ret = curl.easy_perform()
+    let
+      ret = curl.easy_perform()
+      headerData = headerWrap.str
+      bodyData = bodyWrap.str
+
     result.url = req.url
 
     if ret == E_OK:
       var httpCode: uint32
       discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
       result.code = httpCode.int
-      for headerLine in headerData[].split(CRLF):
+      for headerLine in headerData.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
           result.headers[arr[0].strip()] = arr[1].strip()
-      result.body = bodyData[]
+      result.body = bodyData
       if result.headers["Content-Encoding"] == "gzip":
         result.body = uncompress(result.body, dfGzip)
     else:
