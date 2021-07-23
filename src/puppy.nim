@@ -189,7 +189,6 @@ else:
     let
       ret = curl.easy_perform()
       headerData = headerWrap.str
-      bodyData = bodyWrap.str
 
     result.url = req.url
 
@@ -201,7 +200,7 @@ else:
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
           result.headers[arr[0].strip()] = arr[1].strip()
-      result.body = bodyData
+      result.body = bodyWrap.str
       if result.headers["Content-Encoding"] == "gzip":
         result.body = uncompress(result.body, dfGzip)
     else:
