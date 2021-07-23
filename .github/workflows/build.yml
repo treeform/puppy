@@ -13,3 +13,4 @@ jobs:
     - uses: actions/checkout@v2
     - uses: jiro4989/setup-nim-action@v1
     - run: nimble test -y
+    - run: nimble test --gc:arc -y
