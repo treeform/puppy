@@ -3,7 +3,7 @@ import asyncdispatch, asynchttpserver, zippy, uri
 let server = newAsyncHttpServer()
 
 proc cb(req: Request) {.async.} =
-  echo "got request"
+  echo "got request", req.url.path
 
   if req.url.path == "/401":
     echo "responding with 401 - no body"
@@ -27,5 +27,7 @@ proc cb(req: Request) {.async.} =
     else:
       echo "sending pain text result"
       await req.respond(Http200, "uncompressed response body")
+
+  await req.respond(Http404, "Not found.")
 
 waitFor server.serve(Port(8080), cb)

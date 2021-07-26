@@ -83,7 +83,12 @@ when defined(windows) and not defined(puppyLibcurl):
 
     let obj = CreateObject("WinHttp.WinHttpRequest.5.1")
     try:
-      obj.open(req.verb.toUpperAscii(), $req.url)
+      # Trim #hash-fragment from URL like curl does.
+      var url = $req.url
+      if req.url.fragment.len != 0:
+        url.setLen(url.len - req.url.fragment.len - 1)
+
+      obj.open(req.verb.toUpperAscii(), url)
 
       req.addDefaultHeaders()
 
