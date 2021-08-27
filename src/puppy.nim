@@ -1,4 +1,4 @@
-import net, strutils, urlly, zippy
+import net, strutils, urlly, zippy, registry
 
 export urlly
 
@@ -87,6 +87,15 @@ when defined(windows) and not defined(puppyLibcurl):
       var url = $req.url
       if req.url.fragment.len != 0:
         url.setLen(url.len - req.url.fragment.len - 1)
+
+      #Use system proxy if configured and enabled
+      const path = r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+      const key1 = "ProxyEnable"
+      const key2 = "ProxyServer"
+      var proxyEnabled = getRegKey(path, key1)
+      var proxy = getRegKey(path, key2)
+      if len(proxyEnabled) > 0:
+        obj.setProxy(2,proxy)
 
       obj.open(req.verb.toUpperAscii(), url)
 
