@@ -147,8 +147,9 @@ else:
   ): int {.cdecl.} =
     if size != 1:
       raise newException(PuppyError, "Unexpected curl write callback size")
-    var outbuf = cast[ptr StringWrap](outstream)
-    let i = outbuf.str.len
+    let
+      outbuf = cast[ptr StringWrap](outstream)
+      i = outbuf.str.len
     outbuf.str.setLen(outbuf.str.len + count)
     copyMem(outbuf.str[i].addr, buffer, count)
     result = size * count
@@ -156,63 +157,71 @@ else:
   proc fetch*(req: Request): Response =
     result = Response()
 
-    let curl = easy_init()
-
-    discard curl.easy_setopt(OPT_URL, $req.url)
-    discard curl.easy_setopt(OPT_CUSTOMREQUEST, req.verb.toUpperAscii())
-
-    if req.timeout == 0:
-      req.timeout = 60
-    discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
-
     req.addDefaultHeaders()
 
-    var headerList: Pslist
+    var strings: seq[string]
+    strings.add $req.url
+    strings.add req.verb.toUpperAscii()
     for header in req.headers:
-      headerList = slist_append(headerList, header.key & ": " & header.value)
-
-    discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
-
-    if req.body.len > 0:
-      discard curl.easy_setopt(OPT_POSTFIELDS, req.body)
-
-    # Setup writers.
-    var
-      headerWrap: StringWrap
-      bodyWrap: StringWrap
-    discard curl.easy_setopt(OPT_WRITEDATA, bodyWrap.addr)
-    discard curl.easy_setopt(OPT_WRITEFUNCTION, curlWriteFn)
-    discard curl.easy_setopt(OPT_HEADERDATA, headerWrap.addr)
-    discard curl.easy_setopt(OPT_HEADERFUNCTION, curlWriteFn)
-
-    # On windows look for cacert.pem.
-    when defined(windows):
-      discard curl.easy_setopt(OPT_CAINFO, "cacert.pem")
-    # Follow redirects by default.
-    discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
+      strings.add header.key & ": " & header.value
+    strings.add req.body
 
     let
-      ret = curl.easy_perform()
-      headerData = headerWrap.str
+      curl = easy_init()
+      cstrings = allocCStringArray(strings)
+    var headerList: Pslist
+    try:
+      discard curl.easy_setopt(OPT_URL, cstrings[0])
+      discard curl.easy_setopt(OPT_CUSTOMREQUEST, cstrings[1])
 
-    result.url = req.url
+      if req.timeout == 0:
+        req.timeout = 60
+      discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
 
-    if ret == E_OK:
-      var httpCode: uint32
-      discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
-      result.code = httpCode.int
-      for headerLine in headerData.split(CRLF):
-        let arr = headerLine.split(":", 1)
-        if arr.len == 2:
-          result.headers[arr[0].strip()] = arr[1].strip()
-      result.body = bodyWrap.str
-      if result.headers["Content-Encoding"] == "gzip":
-        result.body = uncompress(result.body, dfGzip)
-    else:
-      result.error = $easy_strerror(ret)
+      for i, header in req.headers:
+        headerList = slist_append(headerList, cstrings[2 + i])
 
-    curl.easy_cleanup()
-    slist_free_all(headerList)
+      discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
+
+      if req.body.len > 0:
+        discard curl.easy_setopt(OPT_POSTFIELDS, cstrings[strings.high])
+
+      # Setup writers.
+      var headerWrap, bodyWrap: StringWrap
+      discard curl.easy_setopt(OPT_WRITEDATA, bodyWrap.addr)
+      discard curl.easy_setopt(OPT_WRITEFUNCTION, curlWriteFn)
+      discard curl.easy_setopt(OPT_HEADERDATA, headerWrap.addr)
+      discard curl.easy_setopt(OPT_HEADERFUNCTION, curlWriteFn)
+
+      # On windows look for cacert.pem.
+      when defined(windows):
+        discard curl.easy_setopt(OPT_CAINFO, "cacert.pem".cstring)
+      # Follow redirects by default.
+      discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
+
+      let
+        ret = curl.easy_perform()
+        headerData = headerWrap.str
+
+      result.url = req.url
+
+      if ret == E_OK:
+        var httpCode: uint32
+        discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
+        result.code = httpCode.int
+        for headerLine in headerData.split(CRLF):
+          let arr = headerLine.split(":", 1)
+          if arr.len == 2:
+            result.headers[arr[0].strip()] = arr[1].strip()
+        result.body = bodyWrap.str
+        if result.headers["Content-Encoding"] == "gzip":
+          result.body = uncompress(result.body, dfGzip)
+      else:
+        result.error = $easy_strerror(ret)
+    finally:
+      curl.easy_cleanup()
+      slist_free_all(headerList)
+      deallocCStringArray(cstrings)
 
 proc newRequest*(
   url: string,
@@ -228,7 +237,8 @@ proc newRequest*(
   result.timeout = timeout
 
 proc fetch*(url: string, verb = "get", headers = newSeq[Header]()): string =
-  let req = newRequest(url, verb, headers)
-  let res = req.fetch()
+  let
+    req = newRequest(url, verb, headers)
+    res = req.fetch()
   if res.code == 200:
     return res.body
