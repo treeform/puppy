@@ -165,12 +165,10 @@ else:
     for header in req.headers:
       strings.add header.key & ": " & header.value
 
-    let
-      curl = easy_init()
-      cstrings = allocCStringArray(strings)
+    let curl = easy_init()
     try:
-      discard curl.easy_setopt(OPT_URL, cstrings[0])
-      discard curl.easy_setopt(OPT_CUSTOMREQUEST, cstrings[1])
+      discard curl.easy_setopt(OPT_URL, strings[0].cstring)
+      discard curl.easy_setopt(OPT_CUSTOMREQUEST, strings[1].cstring)
 
       if req.timeout == 0:
         req.timeout = 60
@@ -180,7 +178,7 @@ else:
       # avoid needing to call slist_free_all which creates problems
       var slists: seq[Slist]
       for i, header in req.headers:
-        slists.add Slist(data: cstrings[2 + i], next: nil)
+        slists.add Slist(data: strings[2 + i].cstring, next: nil)
       # Do this in two passes so the slists index addresses are stable
       var headerList: Pslist
       for i, header in req.headers:
@@ -231,7 +229,6 @@ else:
         result.error = $easy_strerror(ret)
     finally:
       curl.easy_cleanup()
-      deallocCStringArray(cstrings)
 
 proc newRequest*(
   url: string,
