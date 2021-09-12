@@ -147,8 +147,9 @@ else:
   ): int {.cdecl.} =
     if size != 1:
       raise newException(PuppyError, "Unexpected curl write callback size")
-    var outbuf = cast[ptr StringWrap](outstream)
-    let i = outbuf.str.len
+    let
+      outbuf = cast[ptr StringWrap](outstream)
+      i = outbuf.str.len
     outbuf.str.setLen(outbuf.str.len + count)
     copyMem(outbuf.str[i].addr, buffer, count)
     result = size * count
@@ -156,63 +157,79 @@ else:
   proc fetch*(req: Request): Response =
     result = Response()
 
-    let curl = easy_init()
-
-    discard curl.easy_setopt(OPT_URL, $req.url)
-    discard curl.easy_setopt(OPT_CUSTOMREQUEST, req.verb.toUpperAscii())
-
-    if req.timeout == 0:
-      req.timeout = 60
-    discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
-
     req.addDefaultHeaders()
 
-    var headerList: Pslist
+    var strings: seq[string]
+    strings.add $req.url
+    strings.add req.verb.toUpperAscii()
     for header in req.headers:
-      headerList = slist_append(headerList, header.key & ": " & header.value)
+      strings.add header.key & ": " & header.value
 
-    discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
+    let curl = easy_init()
+    try:
+      discard curl.easy_setopt(OPT_URL, strings[0].cstring)
+      discard curl.easy_setopt(OPT_CUSTOMREQUEST, strings[1].cstring)
 
-    if req.body.len > 0:
-      discard curl.easy_setopt(OPT_POSTFIELDS, req.body)
+      if req.timeout == 0:
+        req.timeout = 60
+      discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
 
-    # Setup writers.
-    var
-      headerWrap: StringWrap
-      bodyWrap: StringWrap
-    discard curl.easy_setopt(OPT_WRITEDATA, bodyWrap.addr)
-    discard curl.easy_setopt(OPT_WRITEFUNCTION, curlWriteFn)
-    discard curl.easy_setopt(OPT_HEADERDATA, headerWrap.addr)
-    discard curl.easy_setopt(OPT_HEADERFUNCTION, curlWriteFn)
+      # Create the Pslist for passing headers to curl manually. This is to
+      # avoid needing to call slist_free_all which creates problems
+      var slists: seq[Slist]
+      for i, header in req.headers:
+        slists.add Slist(data: strings[2 + i].cstring, next: nil)
+      # Do this in two passes so the slists index addresses are stable
+      var headerList: Pslist
+      for i, header in req.headers:
+        if i == 0:
+          headerList = slists[0].addr
+        else:
+          var tail = headerList
+          while tail.next != nil:
+            tail = tail.next
+          tail.next = slists[i].addr
 
-    # On windows look for cacert.pem.
-    when defined(windows):
-      discard curl.easy_setopt(OPT_CAINFO, "cacert.pem")
-    # Follow redirects by default.
-    discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
+      discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
-    let
-      ret = curl.easy_perform()
-      headerData = headerWrap.str
+      if req.body.len > 0:
+        discard curl.easy_setopt(OPT_POSTFIELDS, req.body.cstring)
 
-    result.url = req.url
+      # Setup writers.
+      var headerWrap, bodyWrap: StringWrap
+      discard curl.easy_setopt(OPT_WRITEDATA, bodyWrap.addr)
+      discard curl.easy_setopt(OPT_WRITEFUNCTION, curlWriteFn)
+      discard curl.easy_setopt(OPT_HEADERDATA, headerWrap.addr)
+      discard curl.easy_setopt(OPT_HEADERFUNCTION, curlWriteFn)
 
-    if ret == E_OK:
-      var httpCode: uint32
-      discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
-      result.code = httpCode.int
-      for headerLine in headerData.split(CRLF):
-        let arr = headerLine.split(":", 1)
-        if arr.len == 2:
-          result.headers[arr[0].strip()] = arr[1].strip()
-      result.body = bodyWrap.str
-      if result.headers["Content-Encoding"] == "gzip":
-        result.body = uncompress(result.body, dfGzip)
-    else:
-      result.error = $easy_strerror(ret)
+      # On windows look for cacert.pem.
+      when defined(windows):
+        discard curl.easy_setopt(OPT_CAINFO, "cacert.pem".cstring)
+      # Follow redirects by default.
+      discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
 
-    curl.easy_cleanup()
-    slist_free_all(headerList)
+      let
+        ret = curl.easy_perform()
+        headerData = headerWrap.str
+
+      result.url = req.url
+
+      if ret == E_OK:
+        var httpCode: uint32
+        discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
+        result.code = httpCode.int
+        for headerLine in headerData.split(CRLF):
+          let arr = headerLine.split(":", 1)
+          if arr.len == 2:
+            result.headers[arr[0].strip()] = arr[1].strip()
+        result.body = bodyWrap.str
+        if result.headers["Content-Encoding"] == "gzip":
+          result.body = uncompress(result.body, dfGzip)
+      else:
+        result.error = $easy_strerror(ret)
+    finally:
+      curl.easy_cleanup()
+      strings.setLen(0) # Make sure strings sticks around until now
 
 proc newRequest*(
   url: string,
@@ -228,7 +245,8 @@ proc newRequest*(
   result.timeout = timeout
 
 proc fetch*(url: string, verb = "get", headers = newSeq[Header]()): string =
-  let req = newRequest(url, verb, headers)
-  let res = req.fetch()
+  let
+    req = newRequest(url, verb, headers)
+    res = req.fetch()
   if res.code == 200:
     return res.body
