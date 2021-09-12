@@ -229,6 +229,7 @@ else:
         result.error = $easy_strerror(ret)
     finally:
       curl.easy_cleanup()
+      strings.setLen(0) # Make sure strings sticks around until now
 
 proc newRequest*(
   url: string,
