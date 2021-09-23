@@ -1,12 +1,10 @@
-import net, strutils, urlly, zippy
+import puppy/common, net, strutils, urlly, zippy
 
-export urlly
+export common, urlly
 
 const CRLF = "\r\n"
 
 type
-  PuppyError* = object of IOError ## Raised if an operation fails.
-
   Header* = object
     key*: string
     value*: string
@@ -75,52 +73,41 @@ proc addDefaultHeaders(req: Request) =
 
 when defined(windows) and not defined(puppyLibcurl):
   # WIN32 API
-  import winim/com
+  import puppy/winhttp
 
   proc fetch*(req: Request): Response =
     # Fetch using win com API
     result = Response()
 
-    let obj = CreateObject("WinHttp.WinHttpRequest.5.1")
+    let winHttp = newWinHttp()
     try:
       # Trim #hash-fragment from URL like curl does.
       var url = $req.url
       if req.url.fragment.len != 0:
         url.setLen(url.len - req.url.fragment.len - 1)
 
-      obj.open(req.verb.toUpperAscii(), url)
+      winHttp.open(req.verb.toUpperAscii(), url)
 
       req.addDefaultHeaders()
 
       for header in req.headers:
-        obj.setRequestHeader(header.key, header.value)
+        winHttp.setRequestHeader(header.key, header.value)
 
       if req.timeout == 0:
         req.timeout = 60
       let ms = int(req.timeout * 1000)
-      obj.SetTimeouts(ms, ms, ms, ms)
+      winHttp.setTimeouts(ms, ms, ms, ms)
 
-      if req.body.len > 0:
-        obj.send(req.body)
-      else:
-        obj.send()
+      winHttp.send(req.body)
     except:
       result.error = getCurrentExceptionMsg()
 
     result.url = req.url
     if result.error.len == 0:
-      result.code = parseInt(obj.status)
+      result.code = winHttp.status
+      result.body = winHttp.responseBody
 
-      let isEmpty =
-        try:
-          obj.responseBody == VT_EMPTY
-        except:
-          false
-
-      if not isEmpty:
-        result.body = string(fromVariant[COMBinary](obj.responseBody))
-
-      let headers = $obj.getAllResponseHeaders()
+      let headers = winHttp.getAllResponseHeaders()
       for headerLine in headers.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
