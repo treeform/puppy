@@ -195,7 +195,9 @@ else:
     # Follow redirects by default.
     discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
 
-    let ret = curl.easy_perform()
+    let 
+      ret = curl.easy_perform()
+      headerData = headerWrap.str
 
     curl.easy_cleanup()
     strings.setLen(0) # Make sure strings sticks around until now
@@ -206,7 +208,7 @@ else:
       var httpCode: uint32
       discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
       result.code = httpCode.int
-      for headerLine in headerWrap.str.split(CRLF):
+      for headerLine in headerData.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
           result.headers[arr[0].strip()] = arr[1].strip()
