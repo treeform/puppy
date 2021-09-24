@@ -116,8 +116,66 @@ when defined(windows) and not defined(puppyLibcurl):
       if result.headers["content-encoding"].toLowerAscii() == "gzip":
         result.body = uncompress(result.body, dfGzip)
 
+elif defined(macosx) and not defined(puppyLibcurl):
+  # AppKit macOS
+  import puppy/machttp
+
+  proc fetch*(req: Request): Response =
+    var url = $req.url
+    if req.url.fragment.len != 0:
+      url.setLen(url.len - req.url.fragment.len - 1)
+
+    if req.timeout == 0:
+      req.timeout = 60
+
+    let macHttp = newRequest(req.verb.toUpperAscii(), $req.url, req.timeout)
+
+    req.addDefaultHeaders()
+    for header in req.headers:
+      macHttp.setHeader(header.key, header.value)
+
+    macHttp.sendSync(req.body, req.body.len)
+
+    result = Response()
+    result.url = req.url
+
+    result.code = macHttp.getCode()
+
+    if result.code == 200:
+      var
+        data: ptr[char]
+        len: int
+      macHttp.getResponseBody(data.addr, len.addr)
+      if len > 0:
+        result.body = newString(len)
+        copyMem(result.body[0].addr, data, len)
+
+    block:
+      var
+        data: ptr[char]
+        len: int
+      macHttp.getResponseHeaders(data.addr, len.addr)
+      if len > 0:
+        let headers = newString(len)
+        copyMem(headers[0].unsafeAddr, data, len)
+        for headerLine in headers.split(CRLF):
+          let arr = headerLine.split(":", 1)
+          if arr.len == 2:
+            result.headers[arr[0].strip()] = arr[1].strip()
+
+    if result.code != 200:
+      var
+        data: ptr[char]
+        len: int
+      macHttp.getResponseError(data.addr, len.addr)
+      if len > 0:
+        result.error = newString(len)
+        copyMem(result.error[0].addr, data, len)
+
+    macHttp.freeRequest()
+
 else:
-  # LIBCURL linux/mac
+  # LIBCURL linux
   import libcurl
 
   type

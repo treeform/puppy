@@ -2,6 +2,7 @@ import puppy
 
 # test simple string API
 
+doAssert fetch("http://www.istrolid.com").len != 0
 doAssert fetch(
   "http://www.istrolid.com",
   headers = @[Header(key: "User-Agent", value: "Nim 1.0")]

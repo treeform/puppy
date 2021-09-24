@@ -9,6 +9,6 @@ nimcache
 *.pdb
 *.ilk
 .*
-
 cacert.pem
 *.dll
+*.plist
