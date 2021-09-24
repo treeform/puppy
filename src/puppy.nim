@@ -121,9 +121,6 @@ elif defined(macosx) and not defined(puppyLibcurl):
   import puppy/machttp
 
   proc fetch*(req: Request): Response =
-    var url = $req.url
-    if req.url.fragment.len != 0:
-      url.setLen(url.len - req.url.fragment.len - 1)
 
     if req.timeout == 0:
       req.timeout = 60
@@ -141,7 +138,7 @@ elif defined(macosx) and not defined(puppyLibcurl):
 
     result.code = macHttp.getCode()
 
-    if result.code == 200:
+    block:
       var
         data: ptr[char]
         len: int
@@ -253,7 +250,7 @@ else:
     # Follow redirects by default.
     discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
 
-    let 
+    let
       ret = curl.easy_perform()
       headerData = headerWrap.str
 

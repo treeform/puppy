@@ -55,12 +55,13 @@ void sendSync(
     ]];
   }
 
-  NSError *error;
+  NSError *error = NULL;
   req->responseBody = [NSURLConnection
     sendSynchronousRequest: req->request
     returningResponse: &req->response
     error: &error
   ];
+
   if (error !=  NULL && req->response.statusCode != 200) {
     req->responseError = [error.localizedDescription
       dataUsingEncoding:NSUTF8StringEncoding];
