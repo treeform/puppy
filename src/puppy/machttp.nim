@@ -7,42 +7,42 @@ type MacRequest = object
 
 proc newRequest*(
   httpMethod, url: cstring, timeout: cfloat
-): ptr[MacRequest] {.cdecl, importc.}
+): ptr MacRequest {.cdecl, importc.}
 
 proc setHeader*(
-  req: ptr[MacRequest],
+  req: ptr MacRequest,
   key: cstring,
   value: cstring
 ) {.cdecl, importc.}
 
 proc sendSync*(
-  req: ptr[MacRequest],
+  req: ptr MacRequest,
   body: cstring,
   bodyLen: int
 ) {.cdecl, importc.}
 
 proc getCode*(
-  req: ptr[MacRequest]
+  req: ptr MacRequest
 ): int {.cdecl, importc.}
 
 proc getResponseBody*(
-  req: ptr[MacRequest],
-  data: ptr[ptr[char]],
-  length: ptr[int]
+  req: ptr MacRequest,
+  data: ptr ptr char,
+  length: ptr int
 ) {.cdecl, importc.}
 
 proc getResponseError*(
-  req: ptr[MacRequest],
-  data: ptr[ptr[char]],
-  length: ptr[int]
+  req: ptr MacRequest,
+  data: ptr ptr char,
+  length: ptr int
 ) {.cdecl, importc.}
 
 proc getResponseHeaders*(
-  req: ptr[MacRequest],
-  data: ptr[ptr[char]],
-  length: ptr[int]
+  req: ptr MacRequest,
+  data: ptr ptr char,
+  length: ptr int
 ) {.cdecl, importc.}
 
 proc freeRequest*(
-  req: ptr[MacRequest]
+  req: ptr MacRequest
 ) {.cdecl, importc.}

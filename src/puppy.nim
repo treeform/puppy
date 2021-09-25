@@ -140,7 +140,7 @@ elif defined(macosx) and not defined(puppyLibcurl):
 
     block:
       var
-        data: ptr[char]
+        data: ptr char
         len: int
       macHttp.getResponseBody(data.addr, len.addr)
       if len > 0:
@@ -149,7 +149,7 @@ elif defined(macosx) and not defined(puppyLibcurl):
 
     block:
       var
-        data: ptr[char]
+        data: ptr char
         len: int
       macHttp.getResponseHeaders(data.addr, len.addr)
       if len > 0:
@@ -162,7 +162,7 @@ elif defined(macosx) and not defined(puppyLibcurl):
 
     if result.code != 200:
       var
-        data: ptr[char]
+        data: ptr char
         len: int
       macHttp.getResponseError(data.addr, len.addr)
       if len > 0:
