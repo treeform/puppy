@@ -80,8 +80,8 @@ void getResponseBody(
   long long* length
 ) {
   if (req->responseBody != NULL) {
-    data[0] = [req->responseBody bytes];
-    length[0] = [req->responseBody length];
+    *data = [req->responseBody bytes];
+    *length = [req->responseBody length];
   }
 }
 
@@ -106,8 +106,8 @@ void getResponseHeaders(
         stringByAppendingString:@"\r\n"];
     }
     req->responseHeaders = [str dataUsingEncoding:NSUTF8StringEncoding];
-    data[0] = [req->responseHeaders bytes];
-    length[0] = [req->responseHeaders length];
+    *data = [req->responseHeaders bytes];
+    *length = [req->responseHeaders length];
   }
 }
 
@@ -117,8 +117,8 @@ void getResponseError(
   long long* length
 ) {
   if (req->responseError != NULL) {
-    data[0] = [req->responseError bytes];
-    length[0] = [req->responseError length];
+    *data = [req->responseError bytes];
+    *length = [req->responseError length];
   }
 }
 
