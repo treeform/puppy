@@ -1,5 +1,5 @@
 {.
-  passL: "-framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo -framework AppKit",
+  passL: "-framework AppKit",
   compile: "machttp.m",
 .}
 
