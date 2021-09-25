@@ -8,11 +8,19 @@ Getting content from a url should be as easy as `readFile`.
 
 `nimble install puppy`
 
-Puppy does not use Nim's HTTP stack, instead it uses `win32 WinHttp` API on Windows and `libcurl` on Linux and macOS. Because Puppy uses system APIs, there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` flag.
+API reference: [nimdocs puppy](https://nimdocs.com/treeform/puppy/puppy.html)
+
+Puppy does not use Nim's HTTP stack, instead it uses `WinHttp` API on Windows , `AppKit` on macOS, and `libcurl` on Linux. Because Puppy uses system APIs, there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` flag. This also has the effect of producing slightly smaller binaires.
 
 Furthermore, Puppy supports gzip transparently right out of the box.
 
-*Will not support async*
+OS    |  Method
+----- | ---------------------------
+Win32 | WinHttp WinHttpRequest
+macOS | AppKit NSMutableURLRequest
+linux | libcurl easy_perform
+
+*Curently does not support async*
 
 ```nim
 import puppy
@@ -71,3 +79,7 @@ echo res.code
 echo res.headers
 echo res.body.len
 ```
+
+# Always use Libcurl
+
+You can pass `-d:puppyLibcurl` to force use of `libcurl` even on windows and macOS. This is useful to debug, if the some reason native OS API does not work. Libcurl is usually installed on macOS but requires a `curl.dll` on windows.
