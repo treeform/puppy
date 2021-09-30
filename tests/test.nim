@@ -9,18 +9,18 @@ doAssert fetch(
 ).len != 0
 doAssert fetch("http://neverssl.com/").len != 0
 doAssert fetch("https://blog.istrolid.com/").len != 0
-doAssert fetch("https://not-a-real-site.xyz/").len == 0
+doAssertRaises(PuppyError):
+  discard fetch("https://not-a-real-site.xyz/")
 
 # test request/response API
 
 block:
   echo "# http fail"
-  let res = fetch(Request(
-    url: parseUrl("https://not-a-real-site.xyz/"),
-    verb: "get"
-  ))
-  echo "res.error: ", res.error
-  doAssert res.error != ""
+  doAssertRaises(PuppyError):
+    discard fetch(Request(
+      url: parseUrl("https://not-a-real-site.xyz/"),
+      verb: "get"
+    ))
 
 block:
   echo "# http"
@@ -29,11 +29,9 @@ block:
     verb: "get",
     headers: @[Header(key: "Auth", value: "1")]
   ))
-  echo "res.error: ", res.error
   echo "res.code: ", res.code
   echo "res.headers: ", res.headers
   echo "res.body.len: ", res.body.len
-  doAssert res.error == ""
   doAssert res.code == 200
   doAssert res.headers.len > 0
   doAssert res.body != ""
@@ -44,11 +42,9 @@ block:
     url: parseUrl("https://blog.istrolid.com/"),
     verb: "get"
   ))
-  echo "res.error: ", res.error
   echo "res.code: ", res.code
   echo "res.headers: ", res.headers
   echo "res.body.len: ", res.body.len
-  doAssert res.error == ""
   doAssert res.code == 200
   doAssert res.headers.len > 0
   doAssert res.body != ""

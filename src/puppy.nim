@@ -21,7 +21,6 @@ type
     headers*: seq[Header]
     code*: int
     body*: string
-    error*: string
 
 func `[]`*(headers: seq[Header], key: string): string =
   ## Get a key out of headers. Not case sensitive.
@@ -74,67 +73,60 @@ proc addDefaultHeaders(req: Request) =
 when defined(windows) and not defined(puppyLibcurl):
   # WIN32 API
   import puppy/winhttp
-
-  proc fetch*(req: Request): Response =
-    # Fetch using win com API
-    result = Response()
-
-    let winHttp = newWinHttp()
-    try:
-      # Trim #hash-fragment from URL like curl does.
-      var url = $req.url
-      if req.url.fragment.len != 0:
-        url.setLen(url.len - req.url.fragment.len - 1)
-
-      winHttp.open(req.verb.toUpperAscii(), url)
-
-      req.addDefaultHeaders()
-
-      for header in req.headers:
-        winHttp.setRequestHeader(header.key, header.value)
-
-      if req.timeout == 0:
-        req.timeout = 60
-      let ms = int(req.timeout * 1000)
-      winHttp.setTimeouts(ms, ms, ms, ms)
-
-      winHttp.send(req.body)
-    except:
-      result.error = getCurrentExceptionMsg()
-
-    result.url = req.url
-    if result.error.len == 0:
-      result.code = winHttp.status
-      result.body = winHttp.responseBody
-
-      let headers = winHttp.getAllResponseHeaders()
-      for headerLine in headers.split(CRLF):
-        let arr = headerLine.split(":", 1)
-        if arr.len == 2:
-          result.headers[arr[0].strip()] = arr[1].strip()
-
-      if result.headers["content-encoding"].toLowerAscii() == "gzip":
-        result.body = uncompress(result.body, dfGzip)
-
 elif defined(macosx) and not defined(puppyLibcurl):
   # AppKit macOS
   import puppy/machttp
+else:
+  # LIBCURL linux
+  import libcurl
 
-  proc fetch*(req: Request): Response =
+proc fetch*(req: Request): Response =
+  # Fetch using win com API
+  result = Response()
+  result.url = req.url
 
-    if req.timeout == 0:
-      req.timeout = 60
+  req.addDefaultHeaders()
 
+  if req.timeout == 0:
+    req.timeout = 60
+
+  # Trim #hash-fragment from URL like curl does.
+  var url = $req.url
+  if req.url.fragment.len != 0:
+    url.setLen(url.len - req.url.fragment.len - 1)
+
+  when defined(windows) and not defined(puppyLibcurl):
+    let winHttp = newWinHttp()
+
+    winHttp.open(req.verb.toUpperAscii(), url)
+
+    for header in req.headers:
+      winHttp.setRequestHeader(header.key, header.value)
+
+    let ms = int(req.timeout * 1000)
+    winHttp.setTimeouts(ms, ms, ms, ms)
+
+    winHttp.send(req.body)
+
+    result.code = winHttp.status
+    result.body = winHttp.responseBody
+
+    let headers = winHttp.getAllResponseHeaders()
+    for headerLine in headers.split(CRLF):
+      let arr = headerLine.split(":", 1)
+      if arr.len == 2:
+        result.headers[arr[0].strip()] = arr[1].strip()
+
+    if result.headers["content-encoding"].toLowerAscii() == "gzip":
+      result.body = uncompress(result.body, dfGzip)
+
+  elif defined(macosx) and not defined(puppyLibcurl):
     let macHttp = newRequest(req.verb.toUpperAscii(), $req.url, req.timeout)
 
-    req.addDefaultHeaders()
     for header in req.headers:
       macHttp.setHeader(header.key, header.value)
 
     macHttp.sendSync(req.body, req.body.len)
-
-    result = Response()
-    result.url = req.url
 
     result.code = macHttp.getCode()
 
@@ -160,46 +152,42 @@ elif defined(macosx) and not defined(puppyLibcurl):
           if arr.len == 2:
             result.headers[arr[0].strip()] = arr[1].strip()
 
-    if result.code != 200:
+    var error: string
+    block:
       var
         data: ptr char
         len: int
       macHttp.getResponseError(data.addr, len.addr)
       if len > 0:
-        result.error = newString(len)
-        copyMem(result.error[0].addr, data, len)
+        error.setLen(len)
+        copyMem(error[0].addr, data, len)
 
     macHttp.freeRequest()
 
-else:
-  # LIBCURL linux
-  import libcurl
+    if error != "":
+      raise newException(PuppyError, error)
 
-  type
-    StringWrap = object
-      ## As strings are value objects they need
-      ## some sort of wrapper to be passed to C.
-      str: string
+  else:
+    type
+      StringWrap = object
+        ## As strings are value objects they need
+        ## some sort of wrapper to be passed to C.
+        str: string
 
-  proc curlWriteFn(
-    buffer: cstring,
-    size: int,
-    count: int,
-    outstream: pointer
-  ): int {.cdecl.} =
-    if size != 1:
-      raise newException(PuppyError, "Unexpected curl write callback size")
-    let
-      outbuf = cast[ptr StringWrap](outstream)
-      i = outbuf.str.len
-    outbuf.str.setLen(outbuf.str.len + count)
-    copyMem(outbuf.str[i].addr, buffer, count)
-    result = size * count
-
-  proc fetch*(req: Request): Response =
-    result = Response()
-
-    req.addDefaultHeaders()
+    proc curlWriteFn(
+      buffer: cstring,
+      size: int,
+      count: int,
+      outstream: pointer
+    ): int {.cdecl.} =
+      if size != 1:
+        raise newException(PuppyError, "Unexpected curl write callback size")
+      let
+        outbuf = cast[ptr StringWrap](outstream)
+        i = outbuf.str.len
+      outbuf.str.setLen(outbuf.str.len + count)
+      copyMem(outbuf.str[i].addr, buffer, count)
+      result = size * count
 
     var strings: seq[string]
     strings.add $req.url
@@ -211,9 +199,6 @@ else:
 
     discard curl.easy_setopt(OPT_URL, strings[0].cstring)
     discard curl.easy_setopt(OPT_CUSTOMREQUEST, strings[1].cstring)
-
-    if req.timeout == 0:
-      req.timeout = 60
     discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
 
     # Create the Pslist for passing headers to curl manually. This is to
@@ -258,8 +243,6 @@ else:
     curl.easy_cleanup()
     strings.setLen(0) # Make sure strings sticks around until now
 
-    result.url = req.url
-
     if ret == E_OK:
       var httpCode: uint32
       discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
@@ -272,7 +255,7 @@ else:
       if result.headers["Content-Encoding"] == "gzip":
         result.body = uncompress(result.body, dfGzip)
     else:
-      result.error = $easy_strerror(ret)
+      raise newException(PuppyError, $easy_strerror(ret))
 
 proc newRequest*(
   url: string,
