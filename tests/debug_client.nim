@@ -50,21 +50,20 @@ for i in 0 ..< 100:
     doAssert res.code == 200
     doAssert res.body == "some data"
 
-  when not defined(windows):
-    block:
-      # test post + gzip
-      let res = fetch(Request(
-        url: parseUrl("http://localhost:8080/postgzip"),
-        headers: @[
-          Header(key: "Accept-Encoding", value: "gzip"),
-          # Header(key: "Content-Type", value: "text/html; charset=UTF-8"),
-          Header(key: "Content-Encoding", value: "gzip")
-        ],
-        verb: "post",
-        body: compress("gzip'ed request body", BestSpeed, dfGzip),
-      ))
-      doAssert res.code == 200
-      doAssert res.body == "gzip'ed request body"
+  block:
+    # test post + gzip
+    let res = fetch(Request(
+      url: parseUrl("http://localhost:8080/postgzip"),
+      headers: @[
+        Header(key: "Accept-Encoding", value: "gzip"),
+        # Header(key: "Content-Type", value: "text/html; charset=UTF-8"),
+        Header(key: "Content-Encoding", value: "gzip")
+      ],
+      verb: "post",
+      body: compress("gzip'ed request body", BestSpeed, dfGzip),
+    ))
+    doAssert res.code == 200
+    doAssert res.body == "gzip'ed request body"
 
   block:
     # test headers

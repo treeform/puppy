@@ -287,7 +287,9 @@ proc SysFreeString*(bstrString: BSTR): void {.importc, stdcall, dynlib: "oleaut3
 proc SysStringLen *(bstrString: BSTR): UINT {.importc, stdcall, dynlib: "oleaut32".}
 proc VariantInit*(pvarg: ptr VARIANT): void {.importc, stdcall, dynlib: "oleaut32".}
 proc VariantClear*(pvarg: ptr VARIANT): void {.importc, stdcall, dynlib: "oleaut32".}
-proc SafeArrayGetDim*(psa: ptr SAFEARRAY): UINT {.importc, stdcall, dynlib: "oleaut32".}
+proc SafeArrayCreate*(vt: VARTYPE, cDims: UINT, rgsabound: ptr SAFEARRAYBOUND): ptr SAFEARRAY {.importc, stdcall, dynlib: "oleaut32".}
+proc SafeArrayGetDim*(psa: ptr SAFEARRAY): HRESULT {.importc, stdcall, dynlib: "oleaut32".}
+proc SafeArrayDestroy*(psa: ptr SAFEARRAY): UINT {.importc, stdcall, dynlib: "oleaut32".}
 proc SafeArrayGetUBound*(psa: ptr SAFEARRAY, nDim: UINT, plUbound: ptr LONG): HRESULT {.importc, stdcall, dynlib: "oleaut32".}
 proc SafeArrayGetLBound*(psa: ptr SAFEARRAY, nDim: UINT, plLbound: ptr LONG): HRESULT {.importc, stdcall, dynlib: "oleaut32".}
 proc SafeArrayAccessData*(psa: ptr SAFEARRAY, ppvData: ptr pointer): HRESULT {.importc, stdcall, dynlib: "oleaut32".}
