@@ -1,14 +1,14 @@
 <img src="docs/puppyBanner.png">
 
-## Puppy - Fetch url resources via HTTP and HTTPS.
-
-Getting content from a url should be as easy as `readFile`.
-
-![Github Actions](https://github.com/treeform/puppy/workflows/Github%20Actions/badge.svg)
+# Puppy - Fetch url resources via HTTP and HTTPS.
 
 `nimble install puppy`
 
-API reference: [nimdocs puppy](https://nimdocs.com/treeform/puppy/puppy.html)
+![Github Actions](https://github.com/treeform/puppy/workflows/Github%20Actions/badge.svg)
+
+[API reference](https://nimdocs.com/treeform/puppy)
+
+## About
 
 Puppy does not use Nim's HTTP stack, instead it uses `WinHttp` API on Windows , `AppKit` on macOS, and `libcurl` on Linux. Because Puppy uses system APIs, there is no need to ship extra `*.dll`s, `cacert.pem`, or forget to pass the `-d:ssl` flag. This also has the effect of producing slightly smaller binaires.
 
