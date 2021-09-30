@@ -62,15 +62,13 @@ void sendSync(
     error: &error
   ];
 
-  if (error !=  NULL && req->response.statusCode != 200) {
+  if (error != NULL && req->response.statusCode != 200) {
     req->responseError = [error.localizedDescription
       dataUsingEncoding:NSUTF8StringEncoding];
   }
 }
 
-long long getCode(
-  MacRequest* req
-) {
+long long getCode(MacRequest* req) {
   return req->response.statusCode;
 }
 
