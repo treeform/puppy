@@ -282,7 +282,7 @@ proc WideCharToMultiByte*(codePage: UINT, dwFlags: DWORD, lpWideCharStr: LPCWCH,
 proc CLSIDFromProgID*(lpszProgID: LPCOLESTR, lpclsid: LPCLSID): HRESULT {.importc, stdcall, dynlib: "ole32".}
 proc CoInitialize*(pvReserved: LPVOID): HRESULT {.importc, stdcall, dynlib: "ole32".}
 proc CoCreateInstance*(rclsid: REFCLSID, pUnkOuter: LPUNKNOWN, dwClsContext: DWORD, riid: REFIID, ppv: ptr LPVOID): HRESULT {.importc, stdcall, dynlib: "ole32".}
-proc SysAllocString*(psz: ptr OLECHAR): BSTR {.importc, stdcall, dynlib: "oleaut32".}
+proc SysAllocStringLen*(psz: ptr OLECHAR, ui: UINT): BSTR {.importc, stdcall, dynlib: "oleaut32".}
 proc SysFreeString*(bstrString: BSTR): void {.importc, stdcall, dynlib: "oleaut32".}
 proc SysStringLen *(bstrString: BSTR): UINT {.importc, stdcall, dynlib: "oleaut32".}
 proc VariantInit*(pvarg: ptr VARIANT): void {.importc, stdcall, dynlib: "oleaut32".}

@@ -55,6 +55,8 @@ proc cb(req: Request) {.async.} =
   if req.url.path == "/headers":
     var headers = newHttpHeaders()
     for key, value in req.headers.pairs:
+      if key in ["accept", "user-agent"]:
+        continue
       headers.add(value, key)
     await req.respond(Http200, $req.url, headers)
     return

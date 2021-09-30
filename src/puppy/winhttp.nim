@@ -15,7 +15,7 @@ proc wstr(str: string): string =
     nil,
     0
   )
-  result = newString((wlen + 1) * 2)
+  result = newString(wlen * 2 + 1)
   discard MultiByteToWideChar(
     CP_UTF8,
     0,
@@ -27,7 +27,7 @@ proc wstr(str: string): string =
 
 proc bstr(str: string): BSTR =
   var ws = str.wstr()
-  result = SysAllocString(cast[ptr WCHAR](ws[0].addr))
+  result = SysAllocStringLen(cast[ptr WCHAR](ws[0].addr), str.len.UINT)
 
 proc `$`(bstr: BSTR): string =
   let mlen = WideCharToMultiByte(
@@ -163,6 +163,9 @@ proc responseBody*(http: WinHttp): string =
 
   try:
     checkHRESULT(http.i.lpVtbl.get_ResponseBody(http.i, variantRes.addr))
+
+    if variantRes.union1.struct1.vt == 0:
+      return
 
     if variantRes.union1.struct1.vt != (VT_ARRAY or VT_UI1):
       raise newException(PuppyError, "Unexpected response body variant type")
