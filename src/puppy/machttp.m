@@ -93,17 +93,11 @@ void getResponseHeaders(
   if (req->response != NULL) {
     NSString *str = @"";
     for(id key in req->response.allHeaderFields) {
-      str = [str
-        stringByAppendingString:key];
-
-      str = [str
-        stringByAppendingString:@": "];
-
-      str = [str
-        stringByAppendingString:[req->response.allHeaderFields objectForKey:key]];
-
-      str = [str
-        stringByAppendingString:@"\r\n"];
+      str = [str stringByAppendingString:key];
+      str = [str stringByAppendingString:@": "];
+      str = [str stringByAppendingString:[
+        req->response.allHeaderFields objectForKey:key]];
+      str = [str stringByAppendingString:@"\r\n"];
     }
     req->responseHeaders = [str dataUsingEncoding:NSUTF8StringEncoding];
     *data = [req->responseHeaders bytes];
