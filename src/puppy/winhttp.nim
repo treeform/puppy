@@ -136,9 +136,19 @@ proc send*(http: WinHttp, body: string = "") =
   if body == "":
     variantBody.union1.struct1.vt = VT_ERROR
   else:
-    let bodyBstr = body.bstr()
-    variantBody.union1.struct1.vt = VT_BSTR
-    variantBody.union1.struct1.union1.bstrVal = bodyBstr
+    var bounds: SAFEARRAYBOUND
+    bounds.lLbound = 0
+    bounds.cElements = body.len.ULONG
+
+    let psa = SafeArrayCreate(VT_UI1, 1, bounds.addr)
+
+    var p: pointer
+    checkHRESULT(SafeArrayAccessData(psa, p.addr))
+    copyMem(p, body[0].unsafeAddr, body.len)
+    checkHRESULT(SafeArrayUnaccessData(psa))
+
+    variantBody.union1.struct1.vt = (VT_ARRAY or VT_UI1)
+    variantBody.union1.struct1.union1.parray = psa
 
   let hresult = http.i.lpVtbl.Send(http.i, variantBody)
   VariantClear(variantBody.addr)
