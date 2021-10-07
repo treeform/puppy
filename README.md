@@ -54,6 +54,7 @@ Use request/response instead.
 Request* = ref object
   url*: Url
   headers*: seq[Header]
+  timeout*: float32
   verb*: string
   body*: string
 
@@ -62,7 +63,6 @@ Response* = ref object
   headers*: seq[Header]
   code*: int
   body*: string
-  error*: string
 ```
 
 Usage example:
@@ -74,7 +74,6 @@ let req = Request(
   headers: @[Header(key: "Auth", value: "1"))]
 )
 let res = fetch(req)
-echo res.error
 echo res.code
 echo res.headers
 echo res.body.len
