@@ -2,13 +2,13 @@ import puppy
 
 # test simple string API
 
-doAssert fetch("http://www.istrolid.com").len != 0
+doAssert fetch("http://www.istrolid.com").body.len != 0
 doAssert fetch(
   "http://www.istrolid.com",
   headers = @[Header(key: "User-Agent", value: "Nim 1.0")]
-).len != 0
-doAssert fetch("http://neverssl.com/").len != 0
-doAssert fetch("https://blog.istrolid.com/").len != 0
+).body.len != 0
+doAssert fetch("http://neverssl.com/").body.len != 0
+doAssert fetch("https://blog.istrolid.com/").body.len != 0
 doAssertRaises(PuppyError):
   discard fetch("https://not-a-real-site.xyz/")
 

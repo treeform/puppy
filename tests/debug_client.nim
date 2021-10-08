@@ -4,8 +4,8 @@ import puppy, zippy
 for i in 0 ..< 100:
   block:
     # test basic
-    doAssert fetch("http://localhost:8080/ok") == "ok"
-    doAssert fetch("http://localhost:8080/401") == ""
+    doAssert fetch("http://localhost:8080/ok").body == "ok"
+    doAssert fetch("http://localhost:8080/401").body == ""
 
   block:
     # test 404
@@ -27,8 +27,8 @@ for i in 0 ..< 100:
 
   block:
     # test hash
-    doAssert fetch("http://localhost:8080/url#hash") == "/url"
-    doAssert fetch("http://localhost:8080/url?a=b#hash") == "/url?a=b"
+    doAssert fetch("http://localhost:8080/url#hash").body == "/url"
+    doAssert fetch("http://localhost:8080/url?a=b#hash").body == "/url?a=b"
 
   block:
     # test gzip

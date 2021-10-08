@@ -25,10 +25,8 @@ linux | libcurl easy_perform
 ```nim
 import puppy
 
-echo fetch("http://neverssl.com/")
+echo fetch("http://neverssl.com/").body
 ```
-
-Will return `""` if the response status code is not `200`.
 
 Need to pass headers?
 
@@ -38,7 +36,7 @@ import puppy
 echo fetch(
   "http://neverssl.com/",
   headers = @[Header(key: "User-Agent", value: "Nim 1.0")]
-)
+).body
 ```
 
 Need a more complex API?

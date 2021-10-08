@@ -81,7 +81,6 @@ else:
   import libcurl
 
 proc fetch*(req: Request): Response =
-  # Fetch using win com API
   result = Response()
   result.url = req.url
 
@@ -270,9 +269,5 @@ proc newRequest*(
   result.headers.merge(headers)
   result.timeout = timeout
 
-proc fetch*(url: string, verb = "get", headers = newSeq[Header]()): string =
-  let
-    req = newRequest(url, verb, headers)
-    res = req.fetch()
-  if res.code == 200:
-    return res.body
+proc fetch*(url: string, verb = "get", headers = newSeq[Header]()): Response =
+  fetch(newRequest(url, verb, headers))
