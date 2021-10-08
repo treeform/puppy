@@ -77,6 +77,12 @@ echo res.headers
 echo res.body.len
 ```
 
-# Always use Libcurl
+## A note on exceptions
+
+Puppy throws a `PuppyError` if an HTTP(S) request does not complete, either due to DNS failure, timeout, or some other unexpected issue.
+
+If the HTTP(S) request completes, the Response contains the status code and any other data from the server. No status codes result in exceptions.
+
+## Always use Libcurl
 
 You can pass `-d:puppyLibcurl` to force use of `libcurl` even on windows and macOS. This is useful to debug, if the some reason native OS API does not work. Libcurl is usually installed on macOS but requires a `curl.dll` on windows.
