@@ -28,7 +28,7 @@ import puppy
 echo fetch("http://neverssl.com/")
 ```
 
-Will return `""` if the response status code is not `200`.
+Will raise `PuppyError` if the response status code is not `200`.
 
 Need to pass headers?
 
