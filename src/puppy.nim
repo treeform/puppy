@@ -1,4 +1,4 @@
-import puppy/common, net, strutils, urlly, zippy
+import net, puppy/common, strutils, urlly, zippy
 
 export common, urlly
 
@@ -270,9 +270,12 @@ proc newRequest*(
   result.headers.merge(headers)
   result.timeout = timeout
 
-proc fetch*(url: string, verb = "get", headers = newSeq[Header]()): string =
+proc fetch*(url: string, headers = newSeq[Header]()): string =
   let
-    req = newRequest(url, verb, headers)
+    req = newRequest(url, "get", headers)
     res = req.fetch()
   if res.code == 200:
     return res.body
+  raise newException(PuppyError,
+    "Non 200 response code: " & $res.code & "\n" & res.body
+  )

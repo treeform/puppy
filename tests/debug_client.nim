@@ -1,11 +1,11 @@
 import puppy, zippy
 
-
 for i in 0 ..< 100:
   block:
     # test basic
     doAssert fetch("http://localhost:8080/ok") == "ok"
-    doAssert fetch("http://localhost:8080/401") == ""
+    doAssertRaises(PuppyError):
+      discard fetch("http://localhost:8080/401")
 
   block:
     # test 404
