@@ -18,7 +18,7 @@ type
   LONGLONG* = int64
   DWORD* = int32
   INT* = int32
-  UINT* = int32
+  UINT* = uint32
   BYTE* = uint8
   LPCCH* = cstring
   CHAR* = char
