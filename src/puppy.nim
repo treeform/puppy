@@ -9,15 +9,14 @@ type
     key*: string
     value*: string
 
-  Request* = ref object
+  Request* = object
     url*: Url
     headers*: seq[Header]
     timeout*: float32
     verb*: string
     body*: string
 
-  Response* = ref object
-    url*: Url
+  Response* = object
     headers*: seq[Header]
     code*: int
     body*: string
@@ -63,7 +62,7 @@ proc merge(a: var seq[Header], b: seq[Header]) =
     if not found:
       a.add(headerB)
 
-proc addDefaultHeaders(req: Request) =
+proc addDefaultHeaders(req: var Request) =
   if req.headers["user-agent"].len == 0:
     req.headers["user-agent"] = "nim/puppy"
   if req.headers["accept-encoding"].len == 0:
@@ -80,10 +79,9 @@ else:
   # LIBCURL linux
   import libcurl
 
-proc fetch*(req: Request): Response =
+proc fetch*(req: Request, result: var Response) =
   # Fetch using win com API
-  result = Response()
-  result.url = req.url
+  var req = req
 
   req.addDefaultHeaders()
 
@@ -270,8 +268,13 @@ proc newRequest*(
   result.headers.merge(headers)
   result.timeout = timeout
 
+proc fetch*(request: Request): Response =
+  var response = Response()
+  fetch(request, response)
+  return response
+
 proc fetch*(url: string, headers = newSeq[Header]()): string =
-  let
+  var
     req = newRequest(url, "get", headers)
     res = req.fetch()
   if res.code == 200:

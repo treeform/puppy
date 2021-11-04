@@ -52,12 +52,12 @@ block:
 # test headers
 
 block:
-  let req = Request()
+  var req = Request()
   req.headers["Content-Type"] = "application/json"
   doAssert req.headers["content-type"] == "application/json"
 
 block:
-  let req = Request()
+  var req = Request()
   req.headers["Content-Type"] = "application/json"
   req.headers["content-type"] = "application/json"
   doAssert req.headers["Content-TYPE"] == "application/json"

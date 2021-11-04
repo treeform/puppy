@@ -1,4 +1,4 @@
-import asyncdispatch, asynchttpserver, uri, zippy
+import asyncdispatch, asynchttpserver, uri, zippy, urlly
 
 let server = newAsyncHttpServer()
 
@@ -7,6 +7,17 @@ proc cb(req: Request) {.async.} =
 
   if req.url.path == "/ok":
     await req.respond(Http200, "ok")
+    return
+
+  if req.url.path == "/slow":
+    await sleepAsync(5000)
+    await req.respond(Http200, "ok... slow")
+    return
+
+  if req.url.path == "/page":
+    let url = parseUrl($req.url)
+    await sleepAsync(100)
+    await req.respond(Http200, url.query["ret"])
     return
 
   if req.url.path == "/401":
@@ -63,4 +74,5 @@ proc cb(req: Request) {.async.} =
 
   await req.respond(Http404, "Not found.")
 
+echo "running on http://localhost:8080"
 waitFor server.serve(Port(8080), cb)
