@@ -1,8 +1,5 @@
 import std/os, std/locks, puppy, puppy/pool, osproc
 
-var compile = startProcess("nim", args=["c", "tests/debug_server.nim"])
-doAssert compile.waitForExit() == 1
-
 var p = startProcess("tests/debug_server")
 sleep(100)
 

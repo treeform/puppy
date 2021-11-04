@@ -1,9 +1,5 @@
 import std/os, std/locks, puppy, puppy/pool, osproc, streams
 
-var compile = startProcess("nim", args=["c", "tests/debug_server.nim"])
-echo compile.outputStream.readAll()
-discard compile.waitForExit()
-
 var p = startProcess("tests/debug_server", options={poParentStreams})
 sleep(100)
 
