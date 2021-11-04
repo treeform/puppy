@@ -1,8 +1,7 @@
-import std/os, std/locks, puppy, puppy/pool, osproc
-
 when not compileOption("threads"):
   echo "do nothing maybe pass --threads:on?"
 else:
+  import std/os, std/locks, puppy, puppy/pool, osproc
   var p = startProcess("tests/debug_server")
   sleep(100)
 
