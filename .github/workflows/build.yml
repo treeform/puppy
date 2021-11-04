@@ -15,5 +15,6 @@ jobs:
     - run: nimble install -y libcurl
     - run: nimble install -y zippy
     - run: nim c tests/debug_server.nim
-    - run: nimble test -y
-    - run: nimble test --gc:arc -y
+    - run: nimble test -y --threads:on --gc:refc
+    - run: nimble test -y --threads:on --gc:arc
+    - run: nimble test -y --threads:on --gc:orc
