@@ -17,7 +17,6 @@ var
   requestLock: Lock
   mapping: seq[(Request, Response, RequestHandleState)]
   chanIn: Channel[RequestHandle]
-  chanOut: Channel[RequestHandle]
 
 proc threadFunc(threadNum: int) {.thread.} =
   while true:
@@ -27,13 +26,12 @@ proc threadFunc(threadNum: int) {.thread.} =
       {.gcSafe.}:
         acquire(requestLock)
         var request = mapping[id][0]
-        var response = mapping[id][1]
         release(requestLock)
 
       echo "started: ", threadNum, " ", $request.url
 
       {.gcSafe.}:
-        fetch(request, response)
+        var response = fetch(request)
 
       {.gcSafe.}:
         acquire(requestLock)
@@ -42,9 +40,6 @@ proc threadFunc(threadNum: int) {.thread.} =
         release(requestLock)
 
     sleep(1)
-
-
-## API:
 
 proc fetchParallel*(request: Request): RequestHandle =
   acquire(requestLock)
@@ -74,7 +69,6 @@ proc response*(id: RequestHandle): Response =
 proc openPool*() =
   initLock(requestLock)
   chanIn.open()
-  chanOut.open()
   for i in 0 ..< numConcurrentThreads:
     createThread(requestThreads[i], threadFunc, i)
 
@@ -82,6 +76,4 @@ proc closePool*() =
   acquire(requestLock)
   mapping.setLen(0)
   release(requestLock)
-
   chanIn.close()
-  chanOut.close()

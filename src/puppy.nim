@@ -79,7 +79,7 @@ else:
   # LIBCURL linux
   import libcurl
 
-proc fetch*(req: Request, result: var Response) =
+proc fetch*(req: Request): Response =
   # Fetch using win com API
   var req = req
 
@@ -267,11 +267,6 @@ proc newRequest*(
   result.verb = verb
   result.headers.merge(headers)
   result.timeout = timeout
-
-proc fetch*(request: Request): Response =
-  var response = Response()
-  fetch(request, response)
-  return response
 
 proc fetch*(url: string, headers = newSeq[Header]()): string =
   var
