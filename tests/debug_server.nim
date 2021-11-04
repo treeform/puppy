@@ -1,4 +1,4 @@
-import asyncdispatch, asynchttpserver, uri, zippy, urlly
+import asyncdispatch, asynchttpserver, uri, zippy, ../src/puppy/urlly
 
 let server = newAsyncHttpServer()
 
