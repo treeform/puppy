@@ -1,4 +1,4 @@
-import net, puppy/common, strutils, urlly, zippy
+import net, puppy/common, strutils, puppy/urlly, zippy
 
 export common, urlly
 
