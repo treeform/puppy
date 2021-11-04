@@ -12,5 +12,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: jiro4989/setup-nim-action@v1
+    - run: nim c test/debug_server.nim
     - run: nimble test -y
     - run: nimble test --gc:arc -y
