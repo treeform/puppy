@@ -15,7 +15,7 @@ proc wstr(str: string): string =
     nil,
     0
   )
-  result = newString(wlen * 2 + 1)
+  result.setLen(wlen * 2 + 1)
   discard MultiByteToWideChar(
     CP_UTF8,
     0,
@@ -40,7 +40,7 @@ proc `$`(bstr: BSTR): string =
     nil,
     nil
   )
-  result = newString(mlen)
+  result.setLen(mlen)
   discard WideCharToMultiByte(
     CP_UTF8,
     0,
@@ -69,7 +69,7 @@ proc newWinHttp*(): WinHttp =
     )
   checkHRESULT(hresult)
 
-  discard CoInitialize(nil)
+  discard CoInitializeEx(nil, COINIT_APARTMENTTHREADED)
 
   var
     IID_IWinHttpRequest = GUID(
@@ -82,7 +82,7 @@ proc newWinHttp*(): WinHttp =
   hresult = CoCreateInstance(
     clsid.addr,
     nil,
-    CLSCTX_LOCAL_SERVER or CLSCTX_INPROC_SERVER,
+    CLSCTX_INPROC_SERVER,
     IID_IWinHttpRequest.addr,
     p.addr
   )
@@ -209,3 +209,30 @@ proc responseBody*(http: WinHttp): string =
     ))
   finally:
     VariantClear(variantRes.addr)
+
+# proc responseStream(http: WinHttp): string =
+#   var variantRes: VARIANT
+#   VariantInit(variantRes.addr)
+
+#   checkHRESULT(http.i.lpVtbl.get_ResponseStream(http.i, variantRes.addr))
+
+#   if variantRes.union1.struct1.vt != VT_UNKNOWN:
+#     raise newException(PuppyError, "Unexpected response stream variant type")
+
+#   let unknown = variantRes.union1.struct1.union1.punkVal
+#   if unknown == nil:
+#     raise newException(PuppyError, "Missing IUnknown COM pointer")
+
+#   VariantClear(variantRes.addr)
+
+#   var
+#     IID_IStream = GUID(
+#       Data1: 0x0000000c,
+#       Data2: 0x0000,
+#       Data3: 0x0000,
+#       Data4: [0xC0.uint8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46]
+#     )
+#     p: pointer
+#   checkHRESULT(unknown.lpVtbl.QueryInterface(unknown, IID_IStream.addr, p.addr))
+
+#   let stream = cast[ptr ISequentialStream](p)
