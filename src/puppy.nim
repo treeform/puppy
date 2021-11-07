@@ -65,23 +65,27 @@ proc merge(a: var seq[Header], b: seq[Header]) =
 
 proc addDefaultHeaders(req: Request) =
   if req.headers["user-agent"].len == 0:
-    req.headers["user-agent"] = "nim/puppy"
+    req.headers["user-agent"] = "Puppy"
   if req.headers["accept-encoding"].len == 0:
     # If there isn't a specific accept-encoding specified, enable gzip
     req.headers["accept-encoding"] = "gzip"
 
 when defined(windows) and not defined(puppyLibcurl):
-  # WIN32 API
-  import puppy/winhttp
+  # WinHTTP Windows
+  import puppy/windefs
 elif defined(macosx) and not defined(puppyLibcurl):
   # AppKit macOS
   import puppy/machttp
 else:
-  # LIBCURL linux
+  # LIBCURL Linux
   import libcurl
 
 proc fetch*(req: Request): Response =
-  # Fetch using win com API
+  if req.url.scheme notin ["http", "https"]:
+    raise newException(
+      PuppyError, "Unsupported request scheme: " & req.url.scheme
+    )
+
   result = Response()
   result.url = req.url
 
@@ -90,35 +94,265 @@ proc fetch*(req: Request): Response =
   if req.timeout == 0:
     req.timeout = 60
 
-  # Trim #hash-fragment from URL like curl does.
-  var url = $req.url
-  if req.url.fragment.len != 0:
-    url.setLen(url.len - req.url.fragment.len - 1)
-
   when defined(windows) and not defined(puppyLibcurl):
-    let winHttp = newWinHttp()
+    proc wstr(str: string): string =
+      let wlen = MultiByteToWideChar(
+        CP_UTF8,
+        0,
+        str.cstring,
+        str.len.int32,
+        nil,
+        0
+      )
+      result.setLen(wlen * 2 + 1)
+      discard MultiByteToWideChar(
+        CP_UTF8,
+        0,
+        str.cstring,
+        str.len.int32,
+        cast[ptr WCHAR](result[0].addr),
+        wlen
+      )
 
-    winHttp.open(req.verb.toUpperAscii(), url)
+    proc `$`(p: ptr WCHAR): string =
+      let len = WideCharToMultiByte(
+        CP_UTF8,
+        0,
+        p,
+        -1,
+        nil,
+        0,
+        nil,
+        nil
+      )
+      if len > 0:
+        result.setLen(len)
+        discard WideCharToMultiByte(
+          CP_UTF8,
+          0,
+          p,
+          -1,
+          result[0].addr,
+          len,
+          nil,
+          nil
+        )
+        # The null terminator is included when -1 is used for the parameter length.
+        # Trim this null terminating character.
+        result.setLen(len - 1)
 
-    for header in req.headers:
-      winHttp.setRequestHeader(header.key, header.value)
+    var hSession, hConnect, hRequest: HINTERNET
+    try:
+      let wideUserAgent = req.headers["user-agent"].wstr()
 
-    let ms = int(req.timeout * 1000)
-    winHttp.setTimeouts(ms, ms, ms, ms)
+      hSession = WinHttpOpen(
+        cast[ptr WCHAR](wideUserAgent[0].unsafeAddr),
+        WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+        nil,
+        nil,
+        0
+      )
+      if hSession == nil:
+        raise newException(
+          PuppyError, "WinHttpOpen error: " & $GetLastError()
+        )
 
-    winHttp.send(req.body)
+      let ms = (req.timeout * 1000).int32
+      if WinHttpSetTimeouts(hSession, ms, ms, ms, ms) == 0:
+        raise newException(
+          PuppyError, "WinHttpSetTimeouts error: " & $GetLastError()
+        )
 
-    result.code = winHttp.status
-    result.body = winHttp.responseBody
+      var port: INTERNET_PORT
+      if req.url.port == "":
+        case req.url.scheme:
+        of "http":
+          port = 80
+        of "https":
+          port = 443
+        else:
+          discard # Scheme is validated above
+      else:
+        try:
+          let parsedPort = parseInt(req.url.port)
+          if parsedPort < 0 or parsedPort > uint16.high.int:
+            raise newException(PuppyError, "Invalid port: " & req.url.port)
+          port = parsedPort.uint16
+        except ValueError as e:
+          raise newException(PuppyError, "Parsing port failed", e)
 
-    let headers = winHttp.getAllResponseHeaders()
-    for headerLine in headers.split(CRLF):
-      let arr = headerLine.split(":", 1)
-      if arr.len == 2:
-        result.headers[arr[0].strip()] = arr[1].strip()
+      let wideHostname = req.url.hostname.wstr()
 
-    if result.headers["content-encoding"].toLowerAscii() == "gzip":
-      result.body = uncompress(result.body, dfGzip)
+      hConnect = WinHttpConnect(
+        hSession,
+        cast[ptr WCHAR](wideHostname[0].unsafeAddr),
+        port,
+        0
+      )
+      if hConnect == nil:
+        raise newException(
+          PuppyError, "WinHttpConnect error: " & $GetLastError()
+        )
+
+      var openRequestFlags: DWORD
+      if req.url.scheme == "https":
+        openRequestFlags = openRequestFlags or WINHTTP_FLAG_SECURE
+
+      var objectName = req.url.path
+      if req.url.search != "":
+        objectName &= "?" & req.url.search
+
+      let
+        wideVerb = req.verb.toUpperAscii().wstr()
+        wideObjectName = objectName.wstr()
+
+      let
+        defaultAcceptType = "*/*".wstr()
+        defaultacceptTypes = [
+          cast[ptr WCHAR](defaultAcceptType[0].unsafeAddr),
+          nil
+        ]
+
+      hRequest = WinHttpOpenRequest(
+        hConnect,
+        cast[ptr WCHAR](wideVerb[0].unsafeAddr),
+        cast[ptr WCHAR](wideObjectName[0].unsafeAddr),
+        nil,
+        nil,
+        cast[ptr ptr WCHAR](defaultacceptTypes.unsafeAddr),
+        openRequestFlags.DWORD
+      )
+      if hRequest == nil:
+        raise newException(
+          PuppyError, "WinHttpOpenRequest error: " & $GetLastError()
+        )
+
+      var requestHeaderBuf: string
+      for header in req.headers:
+        requestHeaderBuf &= header.key & ": " & header.value & CRLF
+
+      let wideRequestHeaderBuf = requestHeaderBuf.wstr()
+
+      if WinHttpAddRequestHeaders(
+        hRequest,
+        cast[ptr WCHAR](wideRequestHeaderBuf[0].unsafeAddr),
+        -1,
+        (WINHTTP_ADDREQ_FLAG_ADD or WINHTTP_ADDREQ_FLAG_REPLACE).DWORD
+      ) == 0:
+        raise newException(
+          PuppyError, "WinHttpAddRequestHeaders error: " & $GetLastError()
+        )
+
+      if WinHttpSendRequest(
+        hRequest,
+        nil,
+        0,
+        req.body.cstring,
+        req.body.len.DWORD,
+        req.body.len.DWORD,
+        0
+      ) == 0:
+        raise newException(
+          PuppyError, "WinHttpSendRequest error: " & $GetLastError()
+        )
+
+      if WinHttpReceiveResponse(hRequest, nil) == 0:
+        raise newException(
+          PuppyError, "WinHttpReceiveResponse error: " & $GetLastError()
+        )
+
+      var
+        statusCode: DWORD
+        dwSize = sizeof(DWORD).DWORD
+      if WinHttpQueryHeaders(
+        hRequest,
+        WINHTTP_QUERY_STATUS_CODE or WINHTTP_QUERY_FLAG_NUMBER,
+        nil,
+        statusCode.addr,
+        dwSize.addr,
+        nil
+      ) == 0:
+        raise newException(
+          PuppyError, "WinHttpQueryHeaders error: " & $GetLastError()
+        )
+
+      result.code = statusCode
+
+      var responseHeaderBuf = newString(8192)
+
+      proc readResponseHeaders() =
+        # Read the response headers. This may be called again after resizing
+        # the buffer.
+        var responseHeaderBytes = responseHeaderBuf.len.DWORD
+        if WinHttpQueryHeaders(
+          hRequest,
+          WINHTTP_QUERY_RAW_HEADERS_CRLF,
+          nil,
+          responseHeaderBuf.cstring,
+          responseHeaderBytes.addr,
+          nil
+        ) == 0:
+          let errorCode = GetLastError()
+          if errorCode == ERROR_INSUFFICIENT_BUFFER:
+            responseHeaderBuf.setLen(responseHeaderBytes)
+            readResponseHeaders()
+          else:
+            raise newException(
+              PuppyError, "HttpQueryInfoW error: " & $errorCode
+            )
+        else:
+          responseHeaderBuf.setLen(responseHeaderBytes)
+
+      readResponseHeaders()
+
+      let responseHeaders =
+        ($cast[ptr WCHAR](responseHeaderBuf[0].addr)).split(CRLF)
+
+      template errorParsingResponseHeaders() =
+        raise newException(PuppyError, "Error parsing response headers")
+
+      if responseHeaders.len == 0:
+        errorParsingResponseHeaders()
+
+      for i, line in responseHeaders:
+        if i == 0: # HTTP/1.1 200 OK
+          continue
+        if line != "":
+          let parts = line.split(":", 1)
+          if parts.len == 2:
+            result.headers[parts[0].strip()] = parts[1].strip()
+
+      var i: int
+      result.body.setLen(8192)
+
+      while true:
+        var bytesRead: DWORD
+        if WinHttpReadData(
+          hRequest,
+          result.body[i].addr,
+          (result.body.len - i).DWORD,
+          bytesRead.addr
+        ) == 0:
+          raise newException(
+            PuppyError, "WinHttpReadData error: " & $GetLastError()
+          )
+
+        i += bytesRead
+
+        if bytesRead == 0:
+          break
+
+        if i == result.body.len:
+          result.body.setLen(min(i * 2, i + 100 * 1024 * 1024))
+
+      result.body.setLen(i)
+
+      if result.headers["content-encoding"].toLowerAscii() == "gzip":
+        result.body = uncompress(result.body, dfGzip)
+    finally:
+      discard WinHttpCloseHandle(hRequest)
+      discard WinHttpCloseHandle(hConnect)
+      discard WinHttpCloseHandle(hSession)
 
   elif defined(macosx) and not defined(puppyLibcurl):
     let macHttp = newRequest(req.verb.toUpperAscii(), $req.url, req.timeout)
