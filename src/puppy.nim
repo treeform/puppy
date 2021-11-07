@@ -157,6 +157,12 @@ proc fetch*(req: Request): Response =
           PuppyError, "WinHttpOpen error: " & $GetLastError()
         )
 
+      let ms = (req.timeout * 1000).int32
+      if WinHttpSetTimeouts(hSession, ms, ms, ms, ms) == 0:
+        raise newException(
+          PuppyError, "WinHttpSetTimeouts error: " & $GetLastError()
+        )
+
       var port: INTERNET_PORT
       if req.url.port == "":
         case req.url.scheme:

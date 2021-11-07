@@ -66,6 +66,11 @@ proc WinHttpOpen*(
   dwFlags: DWORD
 ): HINTERNET {.dynlib: "winhttp".}
 
+proc WinHttpSetTimeouts*(
+  hSession: HINTERNET,
+  nResolveTimeout, nConnectTimeout, nSendTimeout, nReceiveTimeout: int32
+): BOOL {.dynlib: "winhttp".}
+
 proc WinHttpConnect*(
   hSession: HINTERNET,
   lpszServerName: LPCWSTR,
