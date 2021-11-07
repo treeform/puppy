@@ -71,7 +71,7 @@ proc addDefaultHeaders(req: Request) =
     req.headers["accept-encoding"] = "gzip"
 
 when defined(windows) and not defined(puppyLibcurl):
-  # WinINet Windows
+  # WinHTTP Windows
   import puppy/windefs
 elif defined(macosx) and not defined(puppyLibcurl):
   # AppKit macOS
@@ -141,20 +141,20 @@ proc fetch*(req: Request): Response =
         # Trim this null terminating character.
         result.setLen(len - 1)
 
-    var hOpen, hConnect, hRequest: HINTERNET
+    var hSession, hConnect, hRequest: HINTERNET
     try:
       let wideUserAgent = req.headers["user-agent"].wstr()
 
-      hOpen = InternetOpenW(
+      hSession = WinHttpOpen(
         cast[ptr WCHAR](wideUserAgent[0].unsafeAddr),
-        INTERNET_OPEN_TYPE_PRECONFIG,
+        WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
         nil,
         nil,
         0
       )
-      if hOpen == nil:
+      if hSession == nil:
         raise newException(
-          PuppyError, "InternetOpenW error: " & $GetLastError()
+          PuppyError, "WinHttpOpen error: " & $GetLastError()
         )
 
       var port: INTERNET_PORT
@@ -175,32 +175,22 @@ proc fetch*(req: Request): Response =
         except ValueError as e:
           raise newException(PuppyError, "Parsing port failed", e)
 
-      let
-        wideHostname = req.url.hostname.wstr()
-        wideUsername = req.url.username.wstr()
-        widePassword = req.url.password.wstr()
+      let wideHostname = req.url.hostname.wstr()
 
-      hConnect = InternetConnectW(
-        hOpen,
+      hConnect = WinHttpConnect(
+        hSession,
         cast[ptr WCHAR](wideHostname[0].unsafeAddr),
         port,
-        cast[ptr WCHAR](wideUsername[0].unsafeAddr),
-        cast[ptr WCHAR](widePassword[0].unsafeAddr),
-        INTERNET_SERVICE_HTTP,
-        0,
         0
       )
       if hConnect == nil:
         raise newException(
-          PuppyError, "InternetConnectW error: " & $GetLastError()
+          PuppyError, "WinHttpConnect error: " & $GetLastError()
         )
 
-      var openRequestFlags =
-        INTERNET_FLAG_NO_COOKIES or
-        INTERNET_FLAG_NO_CACHE_WRITE or
-        INTERNET_FLAG_KEEP_CONNECTION
+      var openRequestFlags: DWORD
       if req.url.scheme == "https":
-        openRequestFlags = openRequestFlags or INTERNET_FLAG_SECURE
+        openRequestFlags = openRequestFlags or WINHTTP_FLAG_SECURE
 
       var objectName = req.url.path
       if req.url.search != "":
@@ -217,19 +207,18 @@ proc fetch*(req: Request): Response =
           nil
         ]
 
-      hRequest = HttpOpenRequestW(
+      hRequest = WinHttpOpenRequest(
         hConnect,
         cast[ptr WCHAR](wideVerb[0].unsafeAddr),
         cast[ptr WCHAR](wideObjectName[0].unsafeAddr),
         nil,
         nil,
         cast[ptr ptr WCHAR](defaultacceptTypes.unsafeAddr),
-        openRequestFlags.DWORD,
-        0
+        openRequestFlags.DWORD
       )
       if hRequest == nil:
         raise newException(
-          PuppyError, "HttpOpenRequestW error: " & $GetLastError()
+          PuppyError, "WinHttpOpenRequest error: " & $GetLastError()
         )
 
       var requestHeaderBuf: string
@@ -238,26 +227,50 @@ proc fetch*(req: Request): Response =
 
       let wideRequestHeaderBuf = requestHeaderBuf.wstr()
 
-      if HttpAddRequestHeadersW(
+      if WinHttpAddRequestHeaders(
         hRequest,
         cast[ptr WCHAR](wideRequestHeaderBuf[0].unsafeAddr),
         -1,
-        (HTTP_ADDREQ_FLAG_ADD or HTTP_ADDREQ_FLAG_REPLACE).DWORD
+        (WINHTTP_ADDREQ_FLAG_ADD or WINHTTP_ADDREQ_FLAG_REPLACE).DWORD
       ) == 0:
         raise newException(
-          PuppyError, "HttpAddRequestHeadersW error: " & $GetLastError()
+          PuppyError, "WinHttpAddRequestHeaders error: " & $GetLastError()
         )
 
-      if HttpSendRequestW(
+      if WinHttpSendRequest(
         hRequest,
         nil,
         0,
         req.body.cstring,
-        req.body.len.DWORD
+        req.body.len.DWORD,
+        req.body.len.DWORD,
+        0
       ) == 0:
         raise newException(
-          PuppyError, "HttpSendRequestW error: " & $GetLastError()
+          PuppyError, "WinHttpSendRequest error: " & $GetLastError()
         )
+
+      if WinHttpReceiveResponse(hRequest, nil) == 0:
+        raise newException(
+          PuppyError, "WinHttpReceiveResponse error: " & $GetLastError()
+        )
+
+      var
+        statusCode: DWORD
+        dwSize = sizeof(DWORD).DWORD
+      if WinHttpQueryHeaders(
+        hRequest,
+        WINHTTP_QUERY_STATUS_CODE or WINHTTP_QUERY_FLAG_NUMBER,
+        nil,
+        statusCode.addr,
+        dwSize.addr,
+        nil
+      ) == 0:
+        raise newException(
+          PuppyError, "WinHttpQueryHeaders error: " & $GetLastError()
+        )
+
+      result.code = statusCode
 
       var responseHeaderBuf = newString(8192)
 
@@ -265,9 +278,10 @@ proc fetch*(req: Request): Response =
         # Read the response headers. This may be called again after resizing
         # the buffer.
         var responseHeaderBytes = responseHeaderBuf.len.DWORD
-        if HttpQueryInfoW(
+        if WinHttpQueryHeaders(
           hRequest,
-          HTTP_QUERY_RAW_HEADERS_CRLF,
+          WINHTTP_QUERY_RAW_HEADERS_CRLF,
+          nil,
           responseHeaderBuf.cstring,
           responseHeaderBytes.addr,
           nil
@@ -314,14 +328,14 @@ proc fetch*(req: Request): Response =
 
       while true:
         var bytesRead: DWORD
-        if InternetReadFile(
+        if WinHttpReadData(
           hRequest,
           result.body[i].addr,
           (result.body.len - i).DWORD,
           bytesRead.addr
         ) == 0:
           raise newException(
-            PuppyError, "InternetReadFile error: " & $GetLastError()
+            PuppyError, "WinHttpReadData error: " & $GetLastError()
           )
 
         i += bytesRead
@@ -337,9 +351,9 @@ proc fetch*(req: Request): Response =
       if result.headers["content-encoding"].toLowerAscii() == "gzip":
         result.body = uncompress(result.body, dfGzip)
     finally:
-      discard InternetCloseHandle(hRequest)
-      discard InternetCloseHandle(hConnect)
-      discard InternetCloseHandle(hOpen)
+      discard WinHttpCloseHandle(hRequest)
+      discard WinHttpCloseHandle(hConnect)
+      discard WinHttpCloseHandle(hSession)
 
   elif defined(macosx) and not defined(puppyLibcurl):
     let macHttp = newRequest(req.verb.toUpperAscii(), $req.url, req.timeout)

@@ -25,23 +25,13 @@ type
 
 const
   CP_UTF8* = 65001
-  INTERNET_OPEN_TYPE_PRECONFIG* = 0
-  INTERNET_OPEN_TYPE_DIRECT* = 1
-  INTERNET_OPEN_TYPE_PROXY* = 3
-  INTERNET_OPEN_TYPE_PRECONFIG_WITH_NO_AUTOPROXY* = 4
-  INTERNET_SERVICE_HTTP* = 3
-  INTERNET_FLAG_NO_COOKIES* = 0x00080000
-  INTERNET_FLAG_SECURE* = 0x00800000
-  INTERNET_FLAG_RELOAD* = 0x80000000'i32
-  INTERNET_FLAG_NO_CACHE_WRITE* = 0x04000000
-  INTERNET_FLAG_KEEP_CONNECTION* = 0x00400000
-  HTTP_ADDREQ_FLAG_ADD_IF_NEW* = 0x10000000
-  HTTP_ADDREQ_FLAG_ADD* = 0x20000000
-  HTTP_ADDREQ_FLAG_COALESCE_WITH_COMMA* = 0x40000000
-  HTTP_ADDREQ_FLAG_COALESCE_WITH_SEMICOLON* = 0x01000000
-  HTTP_ADDREQ_FLAG_COALESCE* = HTTP_ADDREQ_FLAG_COALESCE_WITH_COMMA
-  HTTP_ADDREQ_FLAG_REPLACE* = 0x80000000'i32
-  HTTP_QUERY_RAW_HEADERS_CRLF* = 22
+  WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY* = 4
+  WINHTTP_FLAG_SECURE* = 0x00800000
+  WINHTTP_ADDREQ_FLAG_ADD* = 0x20000000
+  WINHTTP_ADDREQ_FLAG_REPLACE* = 0x80000000'i32
+  WINHTTP_QUERY_STATUS_CODE* = 19
+  WINHTTP_QUERY_FLAG_NUMBER* = 0x20000000
+  WINHTTP_QUERY_RAW_HEADERS_CRLF* = 22
   ERROR_INSUFFICIENT_BUFFER* = 122
 
 {.push importc, stdcall.}
@@ -68,66 +58,69 @@ proc WideCharToMultiByte*(
   lpUsedDefaultChar: LPBOOL
 ): int32 {.dynlib: "kernel32".}
 
-proc InternetOpenW*(
+proc WinHttpOpen*(
   lpszAgent: LPCWSTR,
   dwAccessType: DWORD,
   lpszProxy: LPCWSTR,
   lpszProxyBypass: LPCWSTR,
   dwFlags: DWORD
-): HINTERNET {.dynlib: "Wininet".}
+): HINTERNET {.dynlib: "winhttp".}
 
-proc InternetConnectW*(
-  hInternet: HINTERNET,
+proc WinHttpConnect*(
+  hSession: HINTERNET,
   lpszServerName: LPCWSTR,
   nServerPort: INTERNET_PORT,
-  lpszUserName: LPCWSTR,
-  lpszPassword: LPCWSTR,
-  dwService: DWORD,
-  dwFlags: DWORD,
-  dwContext: DWORD_PTR
-): HINTERNET {.dynlib: "Wininet".}
+  dwFlags: DWORD
+): HINTERNET {.dynlib: "winhttp".}
 
-proc HttpOpenRequestW*(
+proc WinHttpOpenRequest*(
   hConnect: HINTERNET,
   lpszVerb: LPCWSTR,
   lpszObjectName: LPCWSTR,
   lpszVersion: LPCWSTR,
   lpszReferrer: LPCWSTR,
   lplpszAcceptTypes: ptr LPCWSTR,
-  dwFlags: DWORD,
-  dwContext: DWORD_PTR
-): HINTERNET {.dynlib: "Wininet".}
+  dwFlags: DWORD
+): HINTERNET {.dynlib: "winhttp".}
 
-proc HttpAddRequestHeadersW*(
+proc WinHttpAddRequestHeaders*(
   hRequest: HINTERNET,
   lpszHeaders: LPCWSTR,
   dwHeadersLength: DWORD,
   dwModifiers: DWORD
-): BOOL {.dynlib: "Wininet".}
+): BOOL {.dynlib: "winhttp".}
 
-proc HttpSendRequestW*(
+proc WinHttpSendRequest*(
   hRequest: HINTERNET,
   lpszHeaders: LPCWSTR,
   dwHeadersLength: DWORD,
   lpOptional: LPVOID,
-  dwOptionalLength: DWORD
-): BOOL {.dynlib: "Wininet".}
+  dwOptionalLength: DWORD,
+  dwTotalLength: DWORD,
+  dwContext: DWORD_PTR
+): BOOL {.dynlib: "winhttp".}
 
-proc HttpQueryInfoW*(
+proc WinHttpReceiveResponse*(
+  hRequest: HINTERNET,
+  lpReserved: LPVOID
+): BOOL {.dynlib: "winhttp".}
+
+proc WinHttpQueryHeaders*(
   hRequest: HINTERNET,
   dwInfoLevel: DWORD,
+  pwszName: LPCWSTR,
   lpBuffer: LPVOID,
   lpdwBufferLength: LPDWORD,
   lpdwIndex: LPDWORD
-): BOOL {.dynlib: "Wininet".}
+): BOOL {.dynlib: "winhttp".}
 
-proc InternetReadFile*(
+proc WinHttpReadData*(
   hFile: HINTERNET,
   lpBuffer: LPVOID,
   dwNumberOfBytesToRead: DWORD,
   lpdwNumberOfBytesRead: LPDWORD
-): BOOL {.dynlib: "Wininet".}
+): BOOL {.dynlib: "winhttp".}
 
-proc InternetCloseHandle*(hInternet: HINTERNET): BOOL {.dynlib: "Wininet".}
+proc WinHttpCloseHandle*(hInternet: HINTERNET): BOOL {.dynlib: "winhttp".}
 
 {.pop.}
