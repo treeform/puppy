@@ -1,4 +1,4 @@
-import unicode
+import puppy/common, unicode
 
 proc toUtf16*(input: string): seq[uint16] =
   for rune in input.runes:
@@ -13,3 +13,22 @@ proc toUtf16*(input: string): seq[uint16] =
       result.add(w1.uint16)
       result.add(w2.uint16)
   result.add(0) # null terminator
+
+proc toUtf8*(input: seq[uint16]): string =
+  if input[input.high] != 0:
+    raise newException(PuppyError, "Missing UTF-16 null terminator")
+
+  var i: int
+  while i < input.high:
+    var u1 = input[i]
+    inc i
+    if u1 - 0xd800 >= 0x800:
+      result.add Rune(u1.int)
+    else:
+      var u2 = input[i]
+      inc i
+      if ((u1 and 0xfc00) == 0xd800) and ((u2 and 0xfc00) == 0xdc00):
+        result.add Rune((u1.uint32 shl 10) + u2.uint32 - 0x35fdc00)
+      else:
+        # Error, produce tofu character.
+        result.add "□"

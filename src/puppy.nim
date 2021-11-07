@@ -95,33 +95,6 @@ proc fetch*(req: Request): Response =
     req.timeout = 60
 
   when defined(windows) and not defined(puppyLibcurl):
-    proc `$`(p: ptr WCHAR): string =
-      let len = WideCharToMultiByte(
-        CP_UTF8,
-        0,
-        p,
-        -1,
-        nil,
-        0,
-        nil,
-        nil
-      )
-      if len > 0:
-        result.setLen(len)
-        discard WideCharToMultiByte(
-          CP_UTF8,
-          0,
-          p,
-          -1,
-          result[0].addr,
-          len,
-          nil,
-          nil
-        )
-        # The null terminator is included when -1 is used for the parameter length.
-        # Trim this null terminating character.
-        result.setLen(len - 1)
-
     var hSession, hConnect, hRequest: HINTERNET
     try:
       let wideUserAgent = req.headers["user-agent"].toUtf16()
@@ -294,7 +267,7 @@ proc fetch*(req: Request): Response =
           PuppyError, "HttpQueryInfoW error: " & $errorCode
         )
 
-      let responseHeaders = ($responseHeaderBuf[0].addr).split(CRLF)
+      let responseHeaders = responseHeaderBuf.toUtf8().split(CRLF)
 
       template errorParsingResponseHeaders() =
         raise newException(PuppyError, "Error parsing response headers")
