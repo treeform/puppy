@@ -10,7 +10,7 @@ proc wstr(str: string): string =
   let wlen = MultiByteToWideChar(
     CP_UTF8,
     0,
-    str[0].unsafeAddr,
+    str.cstring,
     str.len.int32,
     nil,
     0
@@ -19,7 +19,7 @@ proc wstr(str: string): string =
   discard MultiByteToWideChar(
     CP_UTF8,
     0,
-    str[0].unsafeAddr,
+    str.cstring,
     str.len.int32,
     cast[ptr WCHAR](result[0].addr),
     wlen
