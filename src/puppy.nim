@@ -65,7 +65,7 @@ proc merge(a: var seq[Header], b: seq[Header]) =
 
 proc addDefaultHeaders(req: Request) =
   if req.headers["user-agent"].len == 0:
-    req.headers["user-agent"] = "nim/puppy"
+    req.headers["user-agent"] = "Puppy"
   if req.headers["accept-encoding"].len == 0:
     # If there isn't a specific accept-encoding specified, enable gzip
     req.headers["accept-encoding"] = "gzip"
