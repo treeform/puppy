@@ -259,35 +259,34 @@ proc fetch*(req: Request): Response =
 
       result.code = statusCode
 
-      var responseHeaderBuf = newString(8192)
+      var responseHeaderBuf = newSeq[uint16](4096)
 
       proc readResponseHeaders() =
         # Read the response headers. This may be called again after resizing
         # the buffer.
-        var responseHeaderBytes = responseHeaderBuf.len.DWORD
+        var responseHeaderBytes = (responseHeaderBuf.len * sizeof(uint16)).DWORD
         if WinHttpQueryHeaders(
           hRequest,
           WINHTTP_QUERY_RAW_HEADERS_CRLF,
           nil,
-          responseHeaderBuf.cstring,
+          responseHeaderBuf[0].addr,
           responseHeaderBytes.addr,
           nil
         ) == 0:
           let errorCode = GetLastError()
           if errorCode == ERROR_INSUFFICIENT_BUFFER:
-            responseHeaderBuf.setLen(responseHeaderBytes)
+            responseHeaderBuf.setLen(responseHeaderBytes div sizeof(uint16))
             readResponseHeaders()
           else:
             raise newException(
               PuppyError, "HttpQueryInfoW error: " & $errorCode
             )
         else:
-          responseHeaderBuf.setLen(responseHeaderBytes)
+          responseHeaderBuf.setLen(responseHeaderBytes div sizeof(uint16))
 
       readResponseHeaders()
 
-      let responseHeaders =
-        ($cast[ptr WCHAR](responseHeaderBuf[0].addr)).split(CRLF)
+      let responseHeaders = ($responseHeaderBuf[0].addr).split(CRLF)
 
       template errorParsingResponseHeaders() =
         raise newException(PuppyError, "Error parsing response headers")
