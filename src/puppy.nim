@@ -72,7 +72,7 @@ proc addDefaultHeaders(req: Request) =
 
 when defined(windows) and not defined(puppyLibcurl):
   # WinHTTP Windows
-  import puppy/windefs
+  import puppy/windefs, puppy/winutils
 elif defined(macosx) and not defined(puppyLibcurl):
   # AppKit macOS
   import puppy/machttp
@@ -95,25 +95,6 @@ proc fetch*(req: Request): Response =
     req.timeout = 60
 
   when defined(windows) and not defined(puppyLibcurl):
-    proc wstr(str: string): string =
-      let wlen = MultiByteToWideChar(
-        CP_UTF8,
-        0,
-        str.cstring,
-        str.len.int32,
-        nil,
-        0
-      )
-      result.setLen(wlen * 2 + 1)
-      discard MultiByteToWideChar(
-        CP_UTF8,
-        0,
-        str.cstring,
-        str.len.int32,
-        cast[ptr WCHAR](result[0].addr),
-        wlen
-      )
-
     proc `$`(p: ptr WCHAR): string =
       let len = WideCharToMultiByte(
         CP_UTF8,
@@ -143,10 +124,10 @@ proc fetch*(req: Request): Response =
 
     var hSession, hConnect, hRequest: HINTERNET
     try:
-      let wideUserAgent = req.headers["user-agent"].wstr()
+      let wideUserAgent = req.headers["user-agent"].toUtf16()
 
       hSession = WinHttpOpen(
-        cast[ptr WCHAR](wideUserAgent[0].unsafeAddr),
+        wideUserAgent[0].unsafeAddr,
         WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
         nil,
         nil,
@@ -181,11 +162,11 @@ proc fetch*(req: Request): Response =
         except ValueError as e:
           raise newException(PuppyError, "Parsing port failed", e)
 
-      let wideHostname = req.url.hostname.wstr()
+      let wideHostname = req.url.hostname.toUtf16()
 
       hConnect = WinHttpConnect(
         hSession,
-        cast[ptr WCHAR](wideHostname[0].unsafeAddr),
+        wideHostname[0].unsafeAddr,
         port,
         0
       )
@@ -203,20 +184,20 @@ proc fetch*(req: Request): Response =
         objectName &= "?" & req.url.search
 
       let
-        wideVerb = req.verb.toUpperAscii().wstr()
-        wideObjectName = objectName.wstr()
+        wideVerb = req.verb.toUpperAscii().toUtf16()
+        wideObjectName = objectName.toUtf16()
 
       let
-        defaultAcceptType = "*/*".wstr()
+        defaultAcceptType = "*/*".toUtf16()
         defaultacceptTypes = [
-          cast[ptr WCHAR](defaultAcceptType[0].unsafeAddr),
+          defaultAcceptType[0].unsafeAddr,
           nil
         ]
 
       hRequest = WinHttpOpenRequest(
         hConnect,
-        cast[ptr WCHAR](wideVerb[0].unsafeAddr),
-        cast[ptr WCHAR](wideObjectName[0].unsafeAddr),
+        wideVerb[0].unsafeAddr,
+        wideObjectName[0].unsafeAddr,
         nil,
         nil,
         cast[ptr ptr WCHAR](defaultacceptTypes.unsafeAddr),
@@ -231,11 +212,11 @@ proc fetch*(req: Request): Response =
       for header in req.headers:
         requestHeaderBuf &= header.key & ": " & header.value & CRLF
 
-      let wideRequestHeaderBuf = requestHeaderBuf.wstr()
+      let wideRequestHeaderBuf = requestHeaderBuf.toUtf16()
 
       if WinHttpAddRequestHeaders(
         hRequest,
-        cast[ptr WCHAR](wideRequestHeaderBuf[0].unsafeAddr),
+        wideRequestHeaderBuf[0].unsafeAddr,
         -1,
         (WINHTTP_ADDREQ_FLAG_ADD or WINHTTP_ADDREQ_FLAG_REPLACE).DWORD
       ) == 0:
