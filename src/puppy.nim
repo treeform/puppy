@@ -315,19 +315,12 @@ proc fetch*(req: Request): Response =
         errorParsingResponseHeaders()
 
       for i, line in responseHeaders:
-        if i == 0:
-          let parts = line.split(" ") # HTTP/1.1 200 OK
-          if parts.len < 1:
-            errorParsingResponseHeaders()
-          try:
-            result.code = parseInt(parts[1])
-          except ValueError:
-            errorParsingResponseHeaders()
-        else:
-          if line != "":
-            let parts = line.split(":")
-            if parts.len == 2:
-              result.headers[parts[0].strip()] = parts[1].strip()
+        if i == 0: # HTTP/1.1 200 OK
+          continue
+        if line != "":
+          let parts = line.split(":")
+          if parts.len == 2:
+            result.headers[parts[0].strip()] = parts[1].strip()
 
       var i: int
       result.body.setLen(8192)
