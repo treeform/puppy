@@ -12,5 +12,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: jiro4989/setup-nim-action@v1
-    - run: nimble test -y
-    - run: nimble test --gc:arc -y
+
+    - run: nimble install -y libcurl
+    - run: nimble install -y zippy
+    - run: nim c tests/debug_server.nim
+
+    - run: nimble test -y --gc:refc
+    - run: nimble test -y --gc:arc
+    - run: nimble test -y --gc:orc
