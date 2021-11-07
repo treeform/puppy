@@ -217,6 +217,11 @@ type
     SetTimeouts*: proc(self: ptr IWinHttpRequest, resolveTimeout, connectTimeout, sendTimeout, receiveTimeout: LONG): HRESULT {.stdcall.}
     SetClientCertificate*: proc(self: ptr IWinHttpRequest, clientCertificate: BSTR): HRESULT {.stdcall.}
     SetAutoLogonPolicy*: proc(self: ptr IWinHttpRequest, autoLogonPolicy: WinHttpRequestAutoLogonPolicy): HRESULT {.stdcall.}
+  ISequentialStream* {.pure.} = object
+    lpVtbl*: ptr ISequentialStreamVtbl
+  ISequentialStreamVtbl* {.pure.} = object of IUnknownVtbl
+    Read*: proc(self: ptr ISequentialStream, pv: pointer, cb: ULONG, pcbRead: ptr ULONG): HRESULT {.stdcall.}
+    Write*: proc(self: ptr ISequentialStream, pv: pointer, cb: ULONG, pcbWritten: ptr ULONG): HRESULT {.stdcall.}
 
 const
   CP_UTF8* = 65001
@@ -224,6 +229,10 @@ const
   CLSCTX_INPROC_SERVER* = 0x1
   CLSCTX_INPROC_HANDLER* = 0x2
   CLSCTX_LOCAL_SERVER* = 0x4
+  COINIT_APARTMENTTHREADED* = 0x2
+  COINIT_MULTITHREADED* = 0x0
+  COINIT_DISABLE_OLE1DDE* = 0x4
+  COINIT_SPEED_OVER_MEMORY* = 0x8
   VT_EMPTY* = 0
   VT_NULL* = 1
   VT_I2* = 2
@@ -280,7 +289,7 @@ const
 proc MultiByteToWideChar*(codePage: UINT, dwFlags: DWORD, lpMultiByteStr: LPCCH, cbMultiByte: int32, lpWideCharStr: LPWSTR, cchWideChar: int32): int32 {.importc, stdcall, dynlib: "kernel32".}
 proc WideCharToMultiByte*(codePage: UINT, dwFlags: DWORD, lpWideCharStr: LPCWCH, cchWideChar: int32, lpMultiByteStr: LPSTR, cbMultiByte: int32, lpDefaultChar: LPCCH, lpUsedDefaultChar: LPBOOL): int32 {.importc, stdcall, dynlib: "kernel32".}
 proc CLSIDFromProgID*(lpszProgID: LPCOLESTR, lpclsid: LPCLSID): HRESULT {.importc, stdcall, dynlib: "ole32".}
-proc CoInitialize*(pvReserved: LPVOID): HRESULT {.importc, stdcall, dynlib: "ole32".}
+proc CoInitializeEx*(pvReserved: LPVOID, dwCoInit: DWORD): HRESULT {.importc, stdcall, dynlib: "ole32".}
 proc CoCreateInstance*(rclsid: REFCLSID, pUnkOuter: LPUNKNOWN, dwClsContext: DWORD, riid: REFIID, ppv: ptr LPVOID): HRESULT {.importc, stdcall, dynlib: "ole32".}
 proc SysAllocStringLen*(psz: ptr OLECHAR, ui: UINT): BSTR {.importc, stdcall, dynlib: "oleaut32".}
 proc SysFreeString*(bstrString: BSTR): void {.importc, stdcall, dynlib: "oleaut32".}
