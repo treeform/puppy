@@ -259,32 +259,40 @@ proc fetch*(req: Request): Response =
 
       result.code = statusCode
 
-      var responseHeaderBuf = newSeq[uint16](4096)
+      var
+        responseHeaderBytes: DWORD
+        responseHeaderBuf: seq[uint16]
 
-      proc readResponseHeaders() =
-        # Read the response headers. This may be called again after resizing
-        # the buffer.
-        var responseHeaderBytes = (responseHeaderBuf.len * sizeof(uint16)).DWORD
-        if WinHttpQueryHeaders(
-          hRequest,
-          WINHTTP_QUERY_RAW_HEADERS_CRLF,
-          nil,
-          responseHeaderBuf[0].addr,
-          responseHeaderBytes.addr,
-          nil
-        ) == 0:
-          let errorCode = GetLastError()
-          if errorCode == ERROR_INSUFFICIENT_BUFFER:
-            responseHeaderBuf.setLen(responseHeaderBytes div sizeof(uint16))
-            readResponseHeaders()
-          else:
-            raise newException(
-              PuppyError, "HttpQueryInfoW error: " & $errorCode
-            )
-        else:
-          responseHeaderBuf.setLen(responseHeaderBytes div sizeof(uint16))
+      # Determine how big the header buffer needs to be
+      discard WinHttpQueryHeaders(
+        hRequest,
+        WINHTTP_QUERY_RAW_HEADERS_CRLF,
+        nil,
+        nil,
+        responseHeaderBytes.addr,
+        nil
+      )
+      let errorCode = GetLastError()
+      if errorCode == ERROR_INSUFFICIENT_BUFFER: # Expected!
+        # Set the header buffer to the correct size and inclue a null terminator
+        responseHeaderBuf.setLen(responseHeaderBytes div sizeof(uint16) + 1)
+      else:
+        raise newException(
+          PuppyError, "HttpQueryInfoW error: " & $errorCode
+        )
 
-      readResponseHeaders()
+      # Read the headers into the buffer
+      if WinHttpQueryHeaders(
+        hRequest,
+        WINHTTP_QUERY_RAW_HEADERS_CRLF,
+        nil,
+        responseHeaderBuf[0].addr,
+        responseHeaderBytes.addr,
+        nil
+      ) == 0:
+        raise newException(
+          PuppyError, "HttpQueryInfoW error: " & $errorCode
+        )
 
       let responseHeaders = ($responseHeaderBuf[0].addr).split(CRLF)
 
