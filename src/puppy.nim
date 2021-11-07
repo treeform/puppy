@@ -318,7 +318,7 @@ proc fetch*(req: Request): Response =
         if i == 0: # HTTP/1.1 200 OK
           continue
         if line != "":
-          let parts = line.split(":")
+          let parts = line.split(":", 1)
           if parts.len == 2:
             result.headers[parts[0].strip()] = parts[1].strip()
 
@@ -343,7 +343,7 @@ proc fetch*(req: Request): Response =
           break
 
         if i == result.body.len:
-          result.body.setLen(i + min(i * 2, 100 * 1024 * 1024))
+          result.body.setLen(min(i * 2, i + 100 * 1024 * 1024))
 
       result.body.setLen(i)
 
