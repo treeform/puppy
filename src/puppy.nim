@@ -17,7 +17,6 @@ type
     body*: string
 
   Response* = ref object
-    url*: Url
     headers*: seq[Header]
     code*: int
     body*: string
@@ -87,7 +86,6 @@ proc fetch*(req: Request): Response =
     )
 
   result = Response()
-  result.url = req.url
 
   req.addDefaultHeaders()
 
