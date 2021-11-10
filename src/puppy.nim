@@ -307,25 +307,28 @@ proc fetch*(req: Request): Response =
       result.body.setLen(i)
 
       if result.headers["content-encoding"].toLowerAscii() == "gzip":
-        result.body = uncompress(result.body, dfGzip)
+        try:
+          result.body = uncompress(result.body, dfGzip)
+        except ZippyError as e:
+          raise newException(PuppyError, "Error uncompressing response", e)
     finally:
       discard WinHttpCloseHandle(hRequest)
       discard WinHttpCloseHandle(hConnect)
       discard WinHttpCloseHandle(hSession)
 
   elif defined(macosx) and not defined(puppyLibcurl):
-    let macHttp = newRequest(req.verb.toUpperAscii(), $req.url, req.timeout)
+    let macHttp = newRequest(req.verb.toUpperAscii().cstring, ($req.url).cstring, req.timeout)
 
     for header in req.headers:
-      macHttp.setHeader(header.key, header.value)
+      macHttp.setHeader(header.key.cstring, header.value.cstring)
 
-    macHttp.sendSync(req.body, req.body.len)
+    macHttp.sendSync(req.body.cstring, req.body.len)
 
     result.code = macHttp.getCode()
 
     block:
       var
-        data: ptr char
+        data: pointer
         len: int
       macHttp.getResponseBody(data.addr, len.addr)
       if len > 0:
@@ -334,7 +337,7 @@ proc fetch*(req: Request): Response =
 
     block:
       var
-        data: ptr char
+        data: pointer
         len: int
       macHttp.getResponseHeaders(data.addr, len.addr)
       if len > 0:
@@ -348,7 +351,7 @@ proc fetch*(req: Request): Response =
     var error: string
     block:
       var
-        data: ptr char
+        data: pointer
         len: int
       macHttp.getResponseError(data.addr, len.addr)
       if len > 0:
@@ -434,7 +437,6 @@ proc fetch*(req: Request): Response =
       headerData = headerWrap.str
 
     curl.easy_cleanup()
-    strings.setLen(0) # Make sure strings sticks around until now
 
     if ret == E_OK:
       var httpCode: uint32
@@ -446,7 +448,10 @@ proc fetch*(req: Request): Response =
           result.headers[arr[0].strip()] = arr[1].strip()
       result.body = bodyWrap.str
       if result.headers["Content-Encoding"] == "gzip":
-        result.body = uncompress(result.body, dfGzip)
+        try:
+          result.body = uncompress(result.body, dfGzip)
+        except ZippyError as e:
+          raise newException(PuppyError, "Error uncompressing response", e)
     else:
       raise newException(PuppyError, $easy_strerror(ret))
 

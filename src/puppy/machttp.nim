@@ -17,7 +17,7 @@ proc setHeader*(
 
 proc sendSync*(
   req: ptr MacRequest,
-  body: cstring,
+  body: pointer,
   bodyLen: int
 ) {.cdecl, importc.}
 
@@ -27,19 +27,19 @@ proc getCode*(
 
 proc getResponseBody*(
   req: ptr MacRequest,
-  data: ptr ptr char,
+  data: ptr pointer,
   length: ptr int
 ) {.cdecl, importc.}
 
 proc getResponseError*(
   req: ptr MacRequest,
-  data: ptr ptr char,
+  data: ptr pointer,
   length: ptr int
 ) {.cdecl, importc.}
 
 proc getResponseHeaders*(
   req: ptr MacRequest,
-  data: ptr ptr char,
+  data: ptr pointer,
   length: ptr int
 ) {.cdecl, importc.}
 
