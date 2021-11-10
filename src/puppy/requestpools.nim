@@ -13,17 +13,43 @@ type
 
   RequestPool* = ref RequestPoolObj
 
-  ResponseHandle* = ref object
+  ResponseHandleInternal = object
     lock: Lock
     request: Request
     response: Response
     error: ref PuppyError
+    refCount: int
 
-proc `=destroy`(handle: var typeof(ResponseHandle()[])) =
-  deinitLock(handle.lock)
-  handle.request = nil
-  handle.response = nil
-  handle.error = nil
+  ResponseHandle* = object
+    internal: ptr ResponseHandleInternal
+
+proc free(internal: ptr ResponseHandleInternal) =
+  deinitLock(internal.lock)
+  internal.request = nil
+  internal.response = nil
+  internal.error = nil
+  dealloc(internal)
+
+proc `=destroy`(handle: var ResponseHandle) =
+  if handle.internal != nil:
+    acquire(handle.internal.lock)
+    if handle.internal.refCount == 0:
+      release(handle.internal.lock)
+      free handle.internal
+    else:
+      dec handle.internal.refCount
+      release(handle.internal.lock)
+
+proc `=`*(dst: var ResponseHandle, src: ResponseHandle) =
+  if src.internal != nil:
+    acquire(src.internal.lock)
+    inc src.internal.refCount
+    release(src.internal.lock)
+
+  if dst.internal != nil:
+    `=destroy`(dst)
+
+  dst.internal = src.internal
 
 proc `=destroy`(pool: var RequestPoolObj) =
   acquire(pool.lock)
@@ -40,17 +66,17 @@ proc `=destroy`(pool: var RequestPoolObj) =
   `=destroy`(pool.queue)
 
 proc ready*(handle: ResponseHandle): bool =
-  acquire(handle.lock)
-  result = handle.response != nil
-  release(handle.lock)
+  acquire(handle.internal.lock)
+  result = handle.internal.response != nil
+  release(handle.internal.lock)
 
 proc response*(handle: ResponseHandle): Response =
   var error: ref PuppyError
 
-  acquire(handle.lock)
-  result = handle.response
-  error = handle.error
-  release(handle.lock)
+  acquire(handle.internal.lock)
+  result = handle.internal.response
+  error = handle.internal.error
+  release(handle.internal.lock)
 
   if error != nil:
     raise error
@@ -74,14 +100,14 @@ proc workerProc(pool: ptr RequestPoolObj) {.raises: [].} =
       response: Response
       error: ref PuppyError
     try:
-      response = fetch(handle.request)
+      response = fetch(handle.internal.request)
     except PuppyError as e:
       error = e
 
-    acquire(handle.lock)
-    handle.response = response
-    handle.error = error
-    release(handle.lock)
+    acquire(handle.internal.lock)
+    handle.internal.response = response
+    handle.internal.error = error
+    release(handle.internal.lock)
 
 proc newRequestPool*(maxInFlight: int): RequestPool =
   result = RequestPool()
@@ -92,9 +118,11 @@ proc newRequestPool*(maxInFlight: int): RequestPool =
     createThread(thread, workerProc, cast[ptr RequestPoolObj](result))
 
 proc fetch*(pool: RequestPool, request: Request): ResponseHandle =
-  result = ResponseHandle()
-  initLock(result.lock)
-  result.request = request
+  result.internal = cast[ptr ResponseHandleInternal](
+    alloc0(sizeof(ResponseHandleInternal))
+  )
+  initLock(result.internal.lock)
+  result.internal.request = request
 
   acquire(pool.lock)
   pool.queue.addLast(result)
