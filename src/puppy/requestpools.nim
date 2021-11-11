@@ -10,6 +10,7 @@ type
     threads: seq[Thread[ptr RequestPoolObj]]
     queue: Deque[ResponseHandle]
     closed: bool
+    requestsCompleted: bool
 
   RequestPool* = ref RequestPoolObj
 
@@ -109,6 +110,10 @@ proc workerProc(pool: ptr RequestPoolObj) {.raises: [].} =
     handle.internal.error = error
     release(handle.internal.lock)
 
+    acquire(pool.lock)
+    pool.requestsCompleted = true
+    release(pool.lock)
+
 proc newRequestPool*(maxInFlight: int): RequestPool =
   result = RequestPool()
   initLock(result.lock)
@@ -129,3 +134,11 @@ proc fetch*(pool: RequestPool, request: Request): ResponseHandle =
   release(pool.lock)
 
   signal(pool.cond)
+
+proc requestsCompleted*(pool: RequestPool): bool =
+  ## Returns whether or not at least one request has completed since the last
+  ## time this proc was called.
+  acquire(pool.lock)
+  result = pool.requestsCompleted
+  pool.requestsCompleted = false
+  release(pool.lock)
