@@ -46,7 +46,7 @@ proc `$`*(req: Request): string =
     path.add "?"
     path.add req.url.search
 
-  result.add "GET " & path & " HTTP/1.1" & CRLF
+  result.add req.verb.toUpperAscii & " " & path & " HTTP/1.1" & CRLF
   result.add "Host: " & req.url.hostname & CRLF
   for header in req.headers:
     result.add header.key & ": " & header.value & CRLF

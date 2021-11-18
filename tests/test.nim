@@ -1,4 +1,4 @@
-import os, osproc, puppy, zippy
+import os, osproc, puppy, zippy, strutils
 
 # test simple string API
 
@@ -108,11 +108,13 @@ try:
 
     block:
       # test post
-      let res = fetch(Request(
+      let req = Request(
         url: parseUrl("http://localhost:8080/post"),
         verb: "post",
         body: "some data"
-      ))
+      )
+      let res = fetch(req)
+      doAssert ($req).startsWith("POST /post HTTP/1.1")
       doAssert res.code == 200
       doAssert res.body == "some data"
 
