@@ -31,7 +31,7 @@ proc free(internal: ptr ResponseHandleInternal) =
   internal.error = nil
   dealloc(internal)
 
-proc `=destroy`(handle: var ResponseHandle) =
+proc `=destroy`*(handle: var ResponseHandle) =
   if handle.internal != nil:
     acquire(handle.internal.lock)
     if handle.internal.refCount == 0:
@@ -52,7 +52,7 @@ proc `=`*(dst: var ResponseHandle, src: ResponseHandle) =
 
   dst.internal = src.internal
 
-proc `=destroy`(pool: var RequestPoolObj) =
+proc `=destroy`*(pool: var RequestPoolObj) =
   acquire(pool.lock)
   pool.closed = true
   release(pool.lock)
