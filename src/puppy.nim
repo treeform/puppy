@@ -68,6 +68,9 @@ proc addDefaultHeaders(req: Request) =
   if req.headers["accept-encoding"].len == 0:
     # If there isn't a specific accept-encoding specified, enable gzip
     req.headers["accept-encoding"] = "gzip"
+  if req.headers["content-length"].len == 0 and req.body.len > 0:
+    req.headers["content-length"] = $req.body.len
+
 
 when defined(windows) and not defined(puppyLibcurl):
   # WinHTTP Windows

@@ -117,6 +117,7 @@ try:
       doAssert ($req).startsWith("POST /post HTTP/1.1")
       doAssert res.code == 200
       doAssert res.body == "some data"
+      doAssert req.headers["Content-Length"] == $res.body.len
 
     block:
       # test post + gzip
