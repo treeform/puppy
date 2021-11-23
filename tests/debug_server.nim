@@ -29,7 +29,10 @@ proc cb(req: Request) {.async.} =
     return
 
   if req.url.path == "/post":
-    await req.respond(Http200, req.body)
+    if req.headers["Content-Length"] == "":
+      await req.respond(Http200, "missing content-length header")
+    else:
+      await req.respond(Http200, req.body)
     return
 
   if req.url.path == "/url":
