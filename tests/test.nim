@@ -114,7 +114,7 @@ try:
         body: "some data"
       )
       let res = fetch(req)
-      doAssert ($req).startsWith("POST /post HTTP/1.1")
+      doAssert ($req).startsWith("POST http://localhost:8080/post")
       doAssert res.code == 200
       doAssert res.body == "some data"
 
