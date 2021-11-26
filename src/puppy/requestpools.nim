@@ -29,7 +29,7 @@ proc free(internal: ptr ResponseHandleInternal) =
   internal.response = nil
   internal.error = nil
 
-proc `=destroy`(handle: var ResponseHandle) =
+proc `=destroy`*(handle: var ResponseHandle) =
   if handle.internal != nil:
     if handle.internal.refCount.load() == 0:
       free handle.internal
