@@ -1,13 +1,14 @@
 when not compileOption("threads"):
   echo "This test requres --threads:on"
 else:
-  import std/os, std/locks, puppy, puppy/requestpools, osproc, streams
+  import std/os, std/locks, puppy, puppy/requestpools, osproc, streams, times
 
   var p = startProcess("tests/debug_server", options={poParentStreams})
   sleep(100)
 
+  let t1 = epochTime()
   try:
-    var pool = newRequestPool(10)
+    var pool = newRequestPool(100)
 
     for i in 0 ..< 10:
       var handles: seq[(int, ResponseHandle)]
@@ -32,11 +33,13 @@ else:
           else:
             inc running
 
-        if change:
-          echo "running: ", running, "/", handles.len
+        # if change:
+          # echo "running: ", running, "/", handles.len
         if running == 0:
           break
 
         sleep(1)
   finally:
+    let t2 = epochTime()
+    echo "Time to complete: ", t2 - t1
     p.terminate()
