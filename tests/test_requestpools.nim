@@ -8,7 +8,7 @@ else:
 
   let t1 = epochTime()
   try:
-    var pool = newRequestPool(100)
+    var pool = newRequestPool(10)
 
     for i in 0 ..< 10:
       var handles: seq[(int, ResponseHandle)]
@@ -33,8 +33,8 @@ else:
           else:
             inc running
 
-        # if change:
-          # echo "running: ", running, "/", handles.len
+        if change:
+          echo "running: ", running, "/", handles.len
         if running == 0:
           break
 
