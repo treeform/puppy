@@ -267,7 +267,7 @@ proc fetch*(req: Request): Response =
         if line != "":
           let parts = line.split(":", 1)
           if parts.len == 2:
-            result.headers[parts[0].strip()] = parts[1].strip()
+            result.headers.add(Header(key: parts[0].strip(), value: parts[1].strip()))
 
       var i: int
       result.body.setLen(8192)
@@ -433,7 +433,7 @@ proc fetch*(req: Request): Response =
       for headerLine in headerData.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
-          result.headers[arr[0].strip()] = arr[1].strip()
+          result.headers.add(Header(key: arr[0].strip(), value: arr[1].strip()))
       result.body = bodyWrap.str
       if result.headers["Content-Encoding"] == "gzip":
         try:
