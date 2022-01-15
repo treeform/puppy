@@ -401,7 +401,7 @@ proc fetch*(req: Request): Response =
 
     discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
-    if req.body.len > 0:
+    if req.verb.toUpperAscii() == "POST" or req.body.len > 0:
       discard curl.easy_setopt(OPT_POSTFIELDSIZE, req.body.len)
       discard curl.easy_setopt(OPT_POSTFIELDS, req.body.cstring)
 
