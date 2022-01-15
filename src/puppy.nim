@@ -62,7 +62,7 @@ when defined(windows) and not defined(puppyLibcurl):
   import puppy/windefs, puppy/winutils
 elif defined(macosx) and not defined(puppyLibcurl):
   # AppKit macOS
-  import puppy/machttp
+  import puppy/macdefs
 else:
   # LIBCURL Linux
   import libcurl
@@ -305,51 +305,53 @@ proc fetch*(req: Request): Response =
       discard WinHttpCloseHandle(hSession)
 
   elif defined(macosx) and not defined(puppyLibcurl):
-    let macHttp = newRequest(req.verb.toUpperAscii().cstring, ($req.url).cstring, req.timeout)
+    let pool = NSAutoreleasePool.allocInit()
 
-    for header in req.headers:
-      macHttp.setHeader(header.key.cstring, header.value.cstring)
+    try:
+      let request = NSMutableURLRequest.requestWithURL(
+        NSURL.URLWithString(@($req.url)),
+        NSURLRequestReloadIgnoringLocalCacheData,
+        req.timeout
+      )
 
-    macHttp.sendSync(req.body.cstring, req.body.len)
+      request.setHTTPMethod(@(req.verb.toUpperAscii()))
 
-    result.code = macHttp.getCode()
+      for header in req.headers:
+        request.setValue(@(header.value), @(header.key))
 
-    block:
+      if req.body.len > 0:
+        request.setHTTPBody(NSData.dataWithBytes(req.body[0].addr, req.body.len))
+
       var
-        data: pointer
-        len: int
-      macHttp.getResponseBody(data.addr, len.addr)
-      if len > 0:
-        result.body = newString(len)
-        copyMem(result.body[0].addr, data, len)
+        response: NSHTTPURLResponse
+        error: NSError
+      let data = NSURLConnection.sendSynchronousRequest(
+        request,
+        response.addr,
+        error.addr
+      )
 
-    block:
-      var
-        data: pointer
-        len: int
-      macHttp.getResponseHeaders(data.addr, len.addr)
-      if len > 0:
-        let headers = newString(len)
-        copyMem(headers[0].unsafeAddr, data, len)
-        for headerLine in headers.split(CRLF):
-          let arr = headerLine.split(":", 1)
-          if arr.len == 2:
-            result.headers[arr[0].strip()] = arr[1].strip()
+      if response.int != 0:
+        result.code = response.statusCode
 
-    var error: string
-    block:
-      var
-        data: pointer
-        len: int
-      macHttp.getResponseError(data.addr, len.addr)
-      if len > 0:
-        error.setLen(len)
-        copyMem(error[0].addr, data, len)
+        let
+          dictionary = response.allHeaderFields
+          keyEnumerator = dictionary.keyEnumerator
+        while true:
+          let key = keyEnumerator.nextObject
+          if key.int == 0:
+            break
+          let value = dictionary.objectForKey(key)
+          result.headers[$(key.NSString)] = $(value.NSString)
 
-    macHttp.freeRequest()
+        result.body.setLen(data.length)
+        copyMem(result.body[0].addr, data.bytes, result.body.len)
 
-    if error != "":
-      raise newException(PuppyError, error)
+      if error.int != 0 and error.code != NSURLErrorUserCancelledAuthentication:
+        raise newException(PuppyError, $error)
+
+    finally:
+      pool.release()
 
   else:
     type
