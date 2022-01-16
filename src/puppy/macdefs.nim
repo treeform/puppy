@@ -49,7 +49,7 @@ const
   NSURLRequestReloadRevalidatingCacheData* = 5.NSURLRequestCachePolicy
   NSURLErrorUserCancelledAuthentication* = -1012
 
-proc allocInit*(_: typedesc[NSAutoreleasePool]): NSAutoreleasePool =
+proc new*(_: typedesc[NSAutoreleasePool]): NSAutoreleasePool =
   objc_msgSend(
     objc_getClass("NSAutoreleasePool".cstring).ID,
     sel_registerName("new".cstring)
@@ -60,6 +60,13 @@ proc release*(pool: NSAutoreleasePool) =
     pool.ID,
     sel_registerName("release".cstring)
   )
+
+template autoreleasepool*(body: untyped) =
+  let pool = NSAutoreleasePool.new()
+  try:
+    body
+  finally:
+    pool.release()
 
 proc `@`*(s: string): NSString =
   objc_msgSend(

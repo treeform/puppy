@@ -305,9 +305,7 @@ proc fetch*(req: Request): Response =
       discard WinHttpCloseHandle(hSession)
 
   elif defined(macosx) and not defined(puppyLibcurl):
-    let pool = NSAutoreleasePool.allocInit()
-
-    try:
+    autoreleasepool:
       let request = NSMutableURLRequest.requestWithURL(
         NSURL.URLWithString(@($req.url)),
         NSURLRequestReloadIgnoringLocalCacheData,
@@ -344,14 +342,12 @@ proc fetch*(req: Request): Response =
           let value = dictionary.objectForKey(key)
           result.headers[$(key.NSString)] = $(value.NSString)
 
-        result.body.setLen(data.length)
-        copyMem(result.body[0].addr, data.bytes, result.body.len)
+        if data.length > 0:
+          result.body.setLen(data.length)
+          copyMem(result.body[0].addr, data.bytes, result.body.len)
 
       if error.int != 0 and error.code != NSURLErrorUserCancelledAuthentication:
         raise newException(PuppyError, $error)
-
-    finally:
-      pool.release()
 
   else:
     type
@@ -405,7 +401,7 @@ proc fetch*(req: Request): Response =
 
     discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
-    if req.body.len > 0:
+    if req.verb.toUpperAscii() == "POST" or req.body.len > 0:
       discard curl.easy_setopt(OPT_POSTFIELDSIZE, req.body.len)
       discard curl.easy_setopt(OPT_POSTFIELDS, req.body.cstring)
 

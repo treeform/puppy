@@ -119,6 +119,18 @@ try:
       doAssert res.body == "some data"
 
     block:
+      # test empty post
+      let req = Request(
+        url: parseUrl("http://localhost:8080/post"),
+        verb: "post",
+        body: ""
+      )
+      let res = fetch(req)
+      doAssert ($req).startsWith("POST http://localhost:8080/post")
+      doAssert res.code == 200
+      doAssert res.body == ""
+
+    block:
       # test post + gzip
       let res = fetch(Request(
         url: parseUrl("http://localhost:8080/postgzip"),
