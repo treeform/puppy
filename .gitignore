@@ -4,8 +4,6 @@
 !*.*
 
 # normal ignores:
-nimbledeps
-nim.cfg
 *.exe
 nimcache
 *.pdb
