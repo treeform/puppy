@@ -31,10 +31,8 @@ proc free(internal: ptr ResponseHandleInternal) =
 
 proc `=destroy`*(handle: var ResponseHandle) =
   if handle.internal != nil:
-    if handle.internal.refCount.load() == 0:
+    if handle.internal.refCount.fetchSub(1) == 0:
       free handle.internal
-    else:
-      discard handle.internal.refCount.fetchSub(1)
 
 proc `=`*(dst: var ResponseHandle, src: ResponseHandle) =
   if src.internal != nil:
