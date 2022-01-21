@@ -1,4 +1,4 @@
-import os, osproc, puppy, zippy, strutils
+import os, osproc, puppy, strutils, zippy
 
 # test simple string API
 
@@ -62,7 +62,12 @@ block:
   req.headers["content-type"] = "application/json"
   doAssert req.headers["Content-TYPE"] == "application/json"
 
-let debugServer = startProcess("tests/debug_server", options={poParentStreams})
+let debugServer = startProcess(
+  "tests/debug_server",
+  options = {poParentStreams}
+)
+
+# Wait for server to start
 sleep(100)
 
 try:

@@ -267,7 +267,10 @@ proc fetch*(req: Request): Response =
         if line != "":
           let parts = line.split(":", 1)
           if parts.len == 2:
-            result.headers.add(Header(key: parts[0].strip(), value: parts[1].strip()))
+            result.headers.add(Header(
+              key: parts[0].strip(),
+              value: parts[1].strip()
+            ))
 
       var i: int
       result.body.setLen(8192)
