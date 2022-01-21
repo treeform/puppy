@@ -5,7 +5,7 @@ type
   ID* = distinct int
   SEL* = distinct int
 
-{.push importc, cdecl, dynlib:"libobjc.dylib".}
+{.push importc, cdecl, dynlib: "libobjc.dylib".}
 
 proc objc_msgSend(self: ID, op: SEL): ID {.varargs.}
 proc objc_getClass(name: cstring): Class
