@@ -1,3 +1,5 @@
+import std/typetraits
+
 {.passL: "-framework AppKit".}
 
 type
@@ -7,7 +9,7 @@ type
 
 {.push importc, cdecl, dynlib: "libobjc.dylib".}
 
-proc objc_msgSend(self: ID, op: SEL): ID {.varargs.}
+proc objc_msgSend(self: ID, op: SEL): ID
 proc objc_getClass(name: cstring): Class
 proc class_getName(cls: Class): cstring
 proc object_getClass(id: ID): Class
@@ -15,6 +17,9 @@ proc sel_registerName(s: cstring): SEL
 proc sel_getName(sel: SEL): cstring
 
 {.pop.}
+
+template s*(s: string): SEL =
+  sel_registerName(s.cstring)
 
 proc `$`*(cls: Class): string =
   $class_getName(cls)
@@ -49,101 +54,148 @@ const
   NSURLRequestReloadRevalidatingCacheData* = 5.NSURLRequestCachePolicy
   NSURLErrorUserCancelledAuthentication* = -1012
 
-proc new*(_: typedesc[NSAutoreleasePool]): NSAutoreleasePool =
-  objc_msgSend(
-    objc_getClass("NSAutoreleasePool".cstring).ID,
-    sel_registerName("new".cstring)
-  ).NSAutoreleasePool
+proc getClass*(t: typedesc): Class =
+  objc_getClass(t.name.cstring)
 
-proc release*(pool: NSAutoreleasePool) =
-  discard objc_msgSend(
-    pool.ID,
-    sel_registerName("release".cstring)
+proc new*(cls: Class): ID =
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): ID {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
+    cls.ID,
+    sel_registerName("new".cstring)
+  )
+
+proc release*(id: ID) =
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL) {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
+    id,
+    s"release"
   )
 
 template autoreleasepool*(body: untyped) =
-  let pool = NSAutoreleasePool.new()
+  let pool = NSAutoreleasePool.getClass().new()
   try:
     body
   finally:
     pool.release()
 
 proc `@`*(s: string): NSString =
-  objc_msgSend(
-    objc_getClass("NSString".cstring).ID,
-    sel_registerName("stringWithUTF8String:".cstring),
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL, s: cstring): NSString {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
+    NSString.getClass().ID,
+    s"stringWithUTF8String:",
     s.cstring
-  ).NSString
+  )
 
 proc UTF8String(s: NSString): cstring =
-  cast[cstring](objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): cstring {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     s.ID,
-    sel_registerName("UTF8String".cstring)
-  ))
+    s"UTF8String"
+  )
 
 proc `$`*(s: NSString): string =
   $s.UTF8String
 
 proc localizedDescription(error: NSError): NSString =
-  objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): NSString {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     error.ID,
-    sel_registerName("localizedDescription".cstring)
-  ).NSString
+    s"localizedDescription"
+  )
 
 proc `$`*(error: NSError): string =
   $error.localizedDescription
 
 proc code*(error: NSError): int =
-  objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): int {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     error.ID,
-    sel_registerName("code".cstring)
-  ).int
+    s"code"
+  )
 
 proc dataWithBytes*(_: typedesc[NSData], bytes: pointer, len: int): NSData =
-  objc_msgSend(
-    objc_getClass("NSData".cstring).ID,
-    sel_registerName("dataWithBytes:length:".cstring),
+  let msgSend = cast[
+    proc(
+      self: ID,
+      cmd: SEL,
+      bytes: pointer,
+      len: int
+    ): NSData {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
+    NSData.getClass().ID,
+    s"dataWithBytes:length:",
     bytes,
     len
-  ).NSData
+  )
 
 proc bytes*(data: NSData): pointer =
-  cast[pointer](objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): pointer {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     data.ID,
-    sel_registerName("bytes".cstring)
-  ))
+    s"bytes"
+  )
 
 proc length*(data: NSData): int =
-  objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): int {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     data.ID,
-    sel_registerName("length".cstring)
-  ).int
+    s"length"
+  )
 
 proc keyEnumerator*(dictionary: NSDictionary): NSEnumerator =
-  objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): NSEnumerator {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     dictionary.ID,
-    sel_registerName("keyEnumerator".cstring)
-  ).NSEnumerator
+    s"keyEnumerator"
+  )
 
 proc objectForKey*(dictionary: NSDictionary, key: ID): ID =
-  objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL, key: ID): ID {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     dictionary.ID,
-    sel_registerName("objectForKey:".cstring),
+    s"objectForKey:",
     key
   )
 
 proc nextObject*(enumerator: NSEnumerator): ID =
-  objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): ID {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     enumerator.ID,
-    sel_registerName("nextObject".cstring)
+    s"nextObject"
   )
 
 proc URLWithString*(_: typedesc[NSURL], url: NSString): NSURL =
-  objc_msgSend(
-    objc_getClass("NSURL".cstring).ID,
-    sel_registerName("URLWithString:".cstring),
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL, ur: NSString): NSURL {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
+    NSURL.getClass().ID,
+    s"URLWithString:",
     url
-  ).NSURL
+  )
 
 proc requestWithURL*(
   _: typedesc[NSMutableURLRequest],
@@ -151,43 +203,56 @@ proc requestWithURL*(
   cachePolicy: NSURLRequestCachePolicy,
   timeoutInterval: NSTimeInterval
 ): NSMutableURLRequest =
-  objc_msgSend(
-    objc_getClass("NSMutableURLRequest".cstring).ID,
-    sel_registerName("requestWithURL:cachePolicy:timeoutInterval:".cstring),
+  let msgSend = cast[
+    proc(
+      self: ID,
+      cmd: SEL,
+      url: NSURL,
+      cachePolicy: NSURLRequestCachePolicy,
+      timeoutInterval: NSTimeInterval
+    ): NSMutableURLRequest {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
+    NSMutableURLRequest.getClass().ID,
+    s"requestWithURL:cachePolicy:timeoutInterval:",
     url,
     cachePolicy,
     timeoutInterval
-  ).NSMutableURLRequest
+  )
 
-proc setHTTPMethod*(
-  request: NSMutableURLRequest,
-  httpMethod: NSString,
-) =
-  discard objc_msgSend(
+proc setHTTPMethod*(request: NSMutableURLRequest, httpMethod: NSString) =
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL, httpMethod: NSString) {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     request.ID,
-    sel_registerName("setHTTPMethod:".cstring),
+    s"setHTTPMethod:",
     httpMethod
   )
 
-proc setValue*(
-  request: NSMutableURLRequest,
-  value: NSString,
-  field: NSString
-) =
-  discard objc_msgSend(
+proc setValue*(request: NSMutableURLRequest, value: NSString, field: NSString) =
+  let msgSend = cast[
+    proc(
+      self: ID,
+      cmd: SEL,
+      value: NSString,
+      field: NSString
+    ) {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     request.ID,
-    sel_registerName("setValue:forHTTPHeaderField:".cstring),
+    s"setValue:forHTTPHeaderField:",
     value,
     field
   )
 
-proc setHTTPBody*(
-  request: NSMutableURLRequest,
-  httpBody: NSData
-) =
-  discard objc_msgSend(
+proc setHTTPBody*(request: NSMutableURLRequest, httpBody: NSData) =
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL, httpBody: NSData) {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     request.ID,
-    sel_registerName("setHTTPBody:".cstring),
+    s"setHTTPBody:",
     httpBody
   )
 
@@ -197,22 +262,37 @@ proc sendSynchronousRequest*(
   response: ptr NSHTTPURLResponse,
   error: ptr NSError
 ): NSData =
-  objc_msgSend(
-    objc_getClass("NSURLConnection".cstring).ID,
-    sel_registerName("sendSynchronousRequest:returningResponse:error:".cstring),
+  let msgSend = cast[
+    proc(
+      self: ID,
+      cmd: SEL,
+      request: NSMutableURLRequest,
+      response: ptr NSHTTPURLResponse,
+      error: ptr NSError
+    ): NSData {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
+    NSURLConnection.getClass().ID,
+    s"sendSynchronousRequest:returningResponse:error:",
     request,
     response,
     error
-  ).NSData
+  )
 
 proc statusCode*(response: NSHTTPURLResponse): int =
-  objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): int {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     response.ID,
-    sel_registerName("statusCode".cstring)
-  ).int
+    s"statusCode"
+  )
 
 proc allHeaderFields*(response: NSHTTPURLResponse): NSDictionary =
-  objc_msgSend(
+  let msgSend = cast[
+    proc(self: ID, cmd: SEL): NSDictionary {.cdecl, raises: [], gcsafe.}
+  ](objc_msgSend)
+  msgSend(
     response.ID,
-    sel_registerName("allHeaderFields".cstring)
-  ).NSDictionary
+    s"allHeaderFields"
+  )
