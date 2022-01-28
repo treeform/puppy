@@ -140,7 +140,7 @@ macro objc*(body: untyped) =
 
   body.insert(0, header)
 
-  echo repr body
+  # echo repr body
 
   return body
 
