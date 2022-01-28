@@ -1,4 +1,4 @@
-version     = "1.5.1"
+version     = "1.5.2"
 author      = "Andre von Houck"
 description = "Puppy fetches HTML pages for Nim."
 license     = "MIT"
