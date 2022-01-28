@@ -67,7 +67,7 @@ else:
   # LIBCURL Linux
   import libcurl
 
-proc fetch*(req: Request): Response =
+proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   if req.url.scheme notin ["http", "https"]:
     raise newException(
       PuppyError, "Unsupported request scheme: " & req.url.scheme
