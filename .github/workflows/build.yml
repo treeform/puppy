@@ -6,12 +6,20 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        nim-version: ['1.2.2', '1.2.x', '1.4.x', 'stable']
+        include:
+          - nim-version: '1.4.x'
+            gc_orc: true
+          - nim-version: 'stable'
+            gc_orc: true
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v2
     - uses: jiro4989/setup-nim-action@v1
+      with:
+        nim-version: ${{ matrix.nim-version }}
 
     - run: nimble install -y libcurl
     - run: nimble install -y zippy
