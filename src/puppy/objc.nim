@@ -39,10 +39,9 @@ macro objc*(body: untyped) =
   ## Takes function declarations and converts them to ObjC calls.
 
   # Header contains all static class lookups and selector registration.
-  var
-    header = newStmtList()
+  var header = newStmtList()
 
-  # For each funciton add body and collect its classes and selectors.
+  # For each function, add body and collect its classes and selectors.
   for fn in body:
     var
       name = fn[0].repr
@@ -51,10 +50,9 @@ macro objc*(body: untyped) =
       classMethod = false
       numParams = 0
 
-    # echo name
     sel.removeSuffix("*")
 
-    # Mark each prock inline:
+    # Mark each proc inline:
     fn[4] = quote do: {.inline.}
 
     # Add a template body without the arguments.
@@ -64,12 +62,13 @@ macro objc*(body: untyped) =
         objc_msgSend
       )
       `msgSend`()
+
     fn[6] = procBody
 
+    # Someday we can look at the retType and be smarter but this works well now.
     if repr(retType) in ["NSRect"]:
       procBody[0][0][2][1] = ident("objc_msgSend_stret")
-
-    if repr(retType) in ["float64", "NSPoint"]:
+    elif repr(retType) in ["float64", "NSPoint"]:
       procBody[0][0][2][1] = ident("objc_msgSend_fpret")
 
     # For each argument decide what to do
@@ -79,13 +78,11 @@ macro objc*(body: untyped) =
           argName = repr arg
           argType = defs[^2]
 
-        # echo "  ", argName, ": ", repr argType
-
         if numParams == 0:
           if argName notin ["class", "self"]:
-            error("First arugment needs to be class or self.", arg)
+            error("First argument needs to be class or self.", arg)
 
-          # First argument is very special, its either a class or self ID.
+          # First argument is very special, it is either a class or self ID.
           if argType.kind == nnkBracketExpr:
             if argType[0].strVal == "typedesc":
               let
@@ -127,9 +124,6 @@ macro objc*(body: untyped) =
 
         inc numParams
 
-    # echo "  return ", repr retType
-    # echo "  selector '", sel, "'"
-
     let
       selVar = ident("sel" & $numSel)
       selStr = newStrLitNode(sel)
@@ -139,8 +133,6 @@ macro objc*(body: untyped) =
     inc numSel
 
   body.insert(0, header)
-
-  # echo repr body
 
   return body
 
