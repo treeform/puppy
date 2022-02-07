@@ -83,10 +83,10 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   when defined(windows) and not defined(puppyLibcurl):
     var hSession, hConnect, hRequest: HINTERNET
     try:
-      let wideUserAgent = req.headers["user-agent"].toUtf16()
+      let wideUserAgent = req.headers["user-agent"].wstr()
 
       hSession = WinHttpOpen(
-        wideUserAgent[0].unsafeAddr,
+        cast[ptr WCHAR](wideUserAgent[0].unsafeAddr),
         WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
         nil,
         nil,
@@ -121,11 +121,11 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         except ValueError as e:
           raise newException(PuppyError, "Parsing port failed", e)
 
-      let wideHostname = req.url.hostname.toUtf16()
+      let wideHostname = req.url.hostname.wstr()
 
       hConnect = WinHttpConnect(
         hSession,
-        wideHostname[0].unsafeAddr,
+        cast[ptr WCHAR](wideHostname[0].unsafeAddr),
         port,
         0
       )
@@ -143,20 +143,20 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         objectName &= "?" & req.url.search
 
       let
-        wideVerb = req.verb.toUpperAscii().toUtf16()
-        wideObjectName = objectName.toUtf16()
+        wideVerb = req.verb.toUpperAscii().wstr()
+        wideObjectName = objectName.wstr()
 
       let
-        defaultAcceptType = "*/*".toUtf16()
+        defaultAcceptType = "*/*".wstr()
         defaultacceptTypes = [
-          defaultAcceptType[0].unsafeAddr,
+          cast[ptr WCHAR](defaultAcceptType[0].unsafeAddr),
           nil
         ]
 
       hRequest = WinHttpOpenRequest(
         hConnect,
-        wideVerb[0].unsafeAddr,
-        wideObjectName[0].unsafeAddr,
+        cast[ptr WCHAR](wideVerb[0].unsafeAddr),
+        cast[ptr WCHAR](wideObjectName[0].unsafeAddr),
         nil,
         nil,
         cast[ptr ptr WCHAR](defaultacceptTypes.unsafeAddr),
@@ -171,11 +171,11 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       for header in req.headers:
         requestHeaderBuf &= header.key & ": " & header.value & CRLF
 
-      let wideRequestHeaderBuf = requestHeaderBuf.toUtf16()
+      let wideRequestHeaderBuf = requestHeaderBuf.wstr()
 
       if WinHttpAddRequestHeaders(
         hRequest,
-        wideRequestHeaderBuf[0].unsafeAddr,
+        cast[ptr WCHAR](wideRequestHeaderBuf[0].unsafeAddr),
         -1,
         (WINHTTP_ADDREQ_FLAG_ADD or WINHTTP_ADDREQ_FLAG_REPLACE).DWORD
       ) == 0:
@@ -220,7 +220,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
 
       var
         responseHeaderBytes: DWORD
-        responseHeaderBuf: seq[uint16]
+        responseHeaderBuf: string
 
       # Determine how big the header buffer needs to be
       discard WinHttpQueryHeaders(
@@ -234,11 +234,9 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       let errorCode = GetLastError()
       if errorCode == ERROR_INSUFFICIENT_BUFFER: # Expected!
         # Set the header buffer to the correct size and inclue a null terminator
-        responseHeaderBuf.setLen(responseHeaderBytes div sizeof(uint16) + 1)
+        responseHeaderBuf.setLen(responseHeaderBytes)
       else:
-        raise newException(
-          PuppyError, "HttpQueryInfoW error: " & $errorCode
-        )
+        raise newException(PuppyError, "HttpQueryInfoW error: " & $errorCode)
 
       # Read the headers into the buffer
       if WinHttpQueryHeaders(
@@ -249,17 +247,13 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         responseHeaderBytes.addr,
         nil
       ) == 0:
-        raise newException(
-          PuppyError, "HttpQueryInfoW error: " & $errorCode
-        )
+        raise newException(PuppyError, "HttpQueryInfoW error: " & $errorCode)
 
-      let responseHeaders = responseHeaderBuf.toUtf8().split(CRLF)
-
-      template errorParsingResponseHeaders() =
-        raise newException(PuppyError, "Error parsing response headers")
+      let responseHeaders =
+        ($cast[ptr WCHAR](responseHeaderBuf[0].addr)).split(CRLF)
 
       if responseHeaders.len == 0:
-        errorParsingResponseHeaders()
+        raise newException(PuppyError, "Error parsing response headers")
 
       for i, line in responseHeaders:
         if i == 0: # HTTP/1.1 200 OK

@@ -38,6 +38,15 @@ const
 
 proc GetLastError*(): DWORD {.dynlib: "kernel32".}
 
+proc MultiByteToWideChar*(
+  codePage: UINT,
+  dwFlags: DWORD,
+  lpMultiByteStr: LPCCH,
+  cbMultiByte: int32,
+  lpWideCharStr: LPWSTR,
+  cchWideChar: int32
+): int32 {.dynlib: "kernel32".}
+
 proc WideCharToMultiByte*(
   codePage: UINT,
   dwFlags: DWORD,
