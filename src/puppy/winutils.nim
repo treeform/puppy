@@ -1,34 +1,47 @@
-import puppy/common, unicode
+import windefs
 
-proc toUtf16*(input: string): seq[uint16] =
-  for rune in input.runes:
-    let u = rune.uint32
-    if (0x0000 <= u and u <= 0xD7FF) or (0xE000 <= u and u <= 0xFFFF):
-      result.add(u.uint16)
-    elif 0x010000 <= u and u <= 0x10FFFF:
-      let
-        u0 = u - 0x10000
-        w1 = 0xD800 + u0 div 0x400
-        w2 = 0xDC00 + u0 mod 0x400
-      result.add(w1.uint16)
-      result.add(w2.uint16)
-  result.add(0) # null terminator
+proc wstr*(str: string): string =
+  let wlen = MultiByteToWideChar(
+    CP_UTF8,
+    0,
+    str.cstring,
+    str.len.int32,
+    nil,
+    0
+  )
+  result.setLen(wlen * 2 + 1)
+  discard MultiByteToWideChar(
+    CP_UTF8,
+    0,
+    str.cstring,
+    str.len.int32,
+    cast[ptr WCHAR](result[0].addr),
+    wlen
+  )
 
-proc toUtf8*(input: seq[uint16]): string =
-  if input[input.high] != 0:
-    raise newException(PuppyError, "Missing UTF-16 null terminator")
-
-  var i: int
-  while i < input.high:
-    var u1 = input[i]
-    inc i
-    if u1 - 0xd800 >= 0x800:
-      result.add Rune(u1.int)
-    else:
-      var u2 = input[i]
-      inc i
-      if ((u1 and 0xfc00) == 0xd800) and ((u2 and 0xfc00) == 0xdc00):
-        result.add Rune((u1.uint32 shl 10) + u2.uint32 - 0x35fdc00)
-      else:
-        # Error, produce tofu character.
-        result.add "□"
+proc `$`*(p: ptr WCHAR): string =
+  let len = WideCharToMultiByte(
+    CP_UTF8,
+    0,
+    p,
+    -1,
+    nil,
+    0,
+    nil,
+    nil
+  )
+  if len > 0:
+    result.setLen(len)
+    discard WideCharToMultiByte(
+      CP_UTF8,
+      0,
+      p,
+      -1,
+      result[0].addr,
+      len,
+      nil,
+      nil
+    )
+    # The null terminator is included when -1 is used for the parameter length.
+    # Trim this null terminating character.
+    result.setLen(len - 1)

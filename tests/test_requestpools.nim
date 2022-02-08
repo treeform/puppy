@@ -2,7 +2,7 @@ when (NimMajor, NimMinor, NimPatch) >= (1, 6, 0):
   when not compileOption("threads"):
     echo "This test requres --threads:on"
   else:
-    import std/os, std/locks, puppy, puppy/requestpools, osproc, streams
+    import std/os, puppy, puppy/requestpools, osproc
 
     var p = startProcess("tests/debug_server", options={poParentStreams})
     sleep(100)
