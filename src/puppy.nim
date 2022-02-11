@@ -1,4 +1,4 @@
-import puppy/common
+import puppy/common, urlly
 
 when defined(windows) and not defined(puppyLibcurl):
   # WinHTTP Windows
