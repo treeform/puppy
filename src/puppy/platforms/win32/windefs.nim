@@ -40,7 +40,7 @@ const
   SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE* = 0x00000200 # another way of calling SECURITY_FLAG_IGNORE_WRONG_USAGE
   SECURITY_FLAG_IGNORE_CERT_CN_INVALID* = 0x00001000
   SECURITY_FLAG_IGNORE_CERT_DATE_INVALID* = 0x00002000
-  
+
 {.push importc, stdcall.}
 
 proc GetLastError*(): DWORD {.dynlib: "kernel32".}
@@ -72,6 +72,13 @@ proc WinHttpOpen*(
   lpszProxyBypass: LPCWSTR,
   dwFlags: DWORD
 ): HINTERNET {.dynlib: "winhttp".}
+
+proc WinHttpSetOption* (
+  hInternet: HINTERNET,
+  dwOption: DWORD,
+  lpBuffer: LPVOID,
+  dwBufferLength: DWORD
+): BOOL {.dynlib: "winhttp".}
 
 proc WinHttpSetTimeouts*(
   hSession: HINTERNET,
