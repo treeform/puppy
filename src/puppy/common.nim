@@ -15,7 +15,8 @@ type
     timeout*: float32
     verb*: string
     body*: string
-
+    insecure*: bool
+    
   Response* = ref object
     headers*: seq[Header]
     code*: int
