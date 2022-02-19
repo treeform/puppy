@@ -105,18 +105,77 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         PuppyError, "WinHttpAddRequestHeaders error: " & $GetLastError()
       )
 
-    if WinHttpSendRequest(
-      hRequest,
-      nil,
-      0,
-      req.body.cstring,
-      req.body.len.DWORD,
-      req.body.len.DWORD,
-      0
-    ) == 0:
-      raise newException(
-        PuppyError, "WinHttpSendRequest error: " & $GetLastError()
-      )
+    if req.insecure:
+      
+      #[
+        Windows is a bit tricky with insecure ssl. Multiple requests may need to be made,
+        and such the while loop
+      ]#
+      while true:
+        if WinHttpSendRequest(
+          hRequest,
+          nil,
+          0,
+          req.body.cstring,
+          req.body.len.DWORD,
+          req.body.len.DWORD,
+          0
+        ) == 0:
+          let result = GetLastError()
+
+          #[
+            (1) If you want to allow SSL certificate errors and continue
+            with the connection, you must allow and initial failure and then
+            reset the security flags. From: "HOWTO: Handle Invalid Certificate
+            Authority Error with WinInet"
+            http://support.microsoft.com/default.aspx?scid=kb;EN-US;182888
+          ]#
+
+          if result == ERROR_WINHTTP_SECURE_FAILURE or result == ERROR_INTERNET_INVALID_CA:
+            # set the flags for insecure options
+            var dwFlags: DWORD = SECURITY_FLAG_IGNORE_UNKNOWN_CA or SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE or SECURITY_FLAG_IGNORE_CERT_CN_INVALID or SECURITY_FLAG_IGNORE_CERT_DATE_INVALID
+
+            if WinHttpSetOption(
+              hRequest,
+              WINHTTP_OPTION_SECURITY_FLAGS,
+              dwFlags.addr,
+              sizeof(dwFlags).DWORD
+            ) == 1:
+              continue
+
+          #[
+            (2) Negotiate authorization handshakes may return this error
+            and require multiple attempts
+            http://msdn.microsoft.com/en-us/library/windows/desktop/aa383144%28v=vs.85%29.aspx
+          ]#
+          elif result == ERROR_WINHTTP_RESEND_REQUEST:
+            continue
+
+          else:
+            #[
+              (3) At his point, it's not an error for insecure ssl.
+              So we shall raise an error
+            ]#
+            raise newException(
+              PuppyError, "WinHttpSendRequest error: " & $GetLastError()
+            )
+
+        # (4) we reach this point. We can break, the request has been sent.
+        break
+          
+    else: 
+      if WinHttpSendRequest(
+        hRequest,
+        nil,
+        0,
+        req.body.cstring,
+        req.body.len.DWORD,
+        req.body.len.DWORD,
+        0
+      ) == 0:
+        raise newException(
+          PuppyError, "WinHttpSendRequest error: " & $GetLastError()
+        )
 
     if WinHttpReceiveResponse(hRequest, nil) == 0:
       raise newException(
