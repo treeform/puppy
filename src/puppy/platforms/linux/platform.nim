@@ -31,6 +31,10 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
 
   let curl = easy_init()
 
+  if req.insecure:
+    discard curl.easy_setopt(OPT_SSL_VERIFYPEER, 0)
+    discard curl.easy_setopt(OPT_SSL_VERIFYHOST, 0)
+
   discard curl.easy_setopt(OPT_URL, strings[0].cstring)
   discard curl.easy_setopt(OPT_CUSTOMREQUEST, strings[1].cstring)
   discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
