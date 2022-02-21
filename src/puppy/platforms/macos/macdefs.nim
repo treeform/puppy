@@ -42,6 +42,7 @@ objc:
   proc setHTTPMethod*(self: NSMutableURLRequest, _: NSString)
   proc setValue*(self: NSMutableURLRequest, _: NSString, forHTTPHeaderField: NSString)
   proc setHTTPBody*(self: NSMutableURLRequest, _: NSData)
+  proc setAllowsAnyHTTPSCertificate*(self: NSMutableURLRequest)
   proc sendSynchronousRequest*(
     class: typedesc[NSURLConnection],
     _: NSMutableURLRequest,

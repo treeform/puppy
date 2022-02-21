@@ -18,6 +18,9 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     if req.body.len > 0:
       request.setHTTPBody(NSData.dataWithBytes(req.body[0].addr, req.body.len))
 
+    if req.insecure:
+      request.setAllowsAnyHTTPSCertificate()
+      
     var
       response: NSHTTPURLResponse
       error: NSError
