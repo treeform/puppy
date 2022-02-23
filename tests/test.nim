@@ -49,6 +49,22 @@ block:
   doAssert res.headers.len > 0
   doAssert res.body != ""
 
+block:
+  echo "# insecure"
+  let res = fetch(
+    Request(
+      url: parseUrl("https://127.0.0.1/connect"),
+      verb: "get",
+      insecure: true,
+    )
+  )
+  echo "res.code: ", res.code
+  echo "res.headers: ", res.headers
+  echo "res.body.len: ", res.body.len
+  doAssert res.code == 200
+  doAssert res.headers.len > 0
+  doAssert res.body != ""
+
 # test headers
 
 block:
