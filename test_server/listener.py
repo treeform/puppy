@@ -17,8 +17,6 @@ class ExecuteServer(BaseHTTPRequestHandler):
     
     ################ Start of GET handlers ################
     def connect_handler(self):
-        global connections
-
         try:
             self.send_response(200)
             self.send_header("Content-type", "text/html")
@@ -64,7 +62,6 @@ def start_execute_server():
         
 
 def main():
-    global SYSTEM_STATE
     start_execute_server()
 
 
