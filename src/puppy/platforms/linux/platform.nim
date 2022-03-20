@@ -8,6 +8,8 @@ type StringWrap = object
 proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
 
+  {.push stackTrace: off.}
+
   proc curlWriteFn(
     buffer: cstring,
     size: int,
@@ -22,6 +24,8 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     outbuf.str.setLen(outbuf.str.len + count)
     copyMem(outbuf.str[i].addr, buffer, count)
     result = size * count
+
+  {.pop.}
 
   var strings: seq[string]
   strings.add $req.url
