@@ -87,7 +87,7 @@ proc fetch*(req: Request): Response =
 
       hSession = WinHttpOpen(
         wideUserAgent[0].unsafeAddr,
-        WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         nil,
         nil,
         0
