@@ -15,9 +15,18 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       0
     )
     if hSession == nil:
-      raise newException(
-        PuppyError, "WinHttpOpen error: " & $GetLastError()
+      # Try older constant
+      hSession = WinHttpOpen(
+        cast[ptr WCHAR](wideUserAgent[0].unsafeAddr),
+        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        nil,
+        nil,
+        0
       )
+      if hSession == nil:
+        raise newException(
+          PuppyError, "WinHttpOpen error: " & $GetLastError()
+        )
 
     let ms = (req.timeout * 1000).int32
     if WinHttpSetTimeouts(hSession, ms, ms, ms, ms) == 0:
