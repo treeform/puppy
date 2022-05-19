@@ -71,7 +71,7 @@ Usage example:
 let req = Request(
   url: parseUrl("http://www.istrolid.com"),
   verb: "get",
-  headers: @[Header(key: "Auth", value: "1"))]
+  headers: @[Header(key: "Auth", value: "1")]
 )
 let res = fetch(req)
 echo res.code
