@@ -1,11 +1,19 @@
 import libcurl, puppy/common, std/strutils, zippy
+from std/sugar import capture
 
 type StringWrap = object
   ## As strings are value objects they need
   ## some sort of wrapper to be passed to C.
   str: string
 
-proc fetch*(req: Request): Response {.raises: [PuppyError].} =
+proc cProgressCallback(clientp: pointer; dltotal, dlnow, ultotal, ulnow: cdouble): cint {.cdecl, raises: [].} =
+  try:
+    cast[proc(dltotal, dlnow, ultotal, ulnow: int) {.nimcall.}](clientp)(dltotal.int, dlnow.int, ultotal.int, ulnow.int)
+  except:
+    echo getCurrentExceptionMsg()
+    quit(1)
+
+proc fetch*(req: Request, onprogress: proc(dltotal, dlnow, ultotal, ulnow: int) {.closure.} = nil): Response {.raises: [PuppyError].} =
   result = Response()
 
   {.push stackTrace: off.}
@@ -38,6 +46,11 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   discard curl.easy_setopt(OPT_URL, strings[0].cstring)
   discard curl.easy_setopt(OPT_CUSTOMREQUEST, strings[1].cstring)
   discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
+
+  if not isNil onprogress:
+    discard curl.easy_setopt(OPT_NOPROGRESS, 0)
+    discard curl.easy_setopt(OPT_PROGRESSDATA, cast[pointer](onprogress.rawProc))
+    discard curl.easy_setopt(OPT_PROGRESSFUNCTION, cProgressCallback)
 
   # Create the Pslist for passing headers to curl manually. This is to
   # avoid needing to call slist_free_all which creates problems
