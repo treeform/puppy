@@ -79,6 +79,17 @@ echo res.headers
 echo res.body.len
 ```
 
+Get download progress?
+
+```nim
+import puppy
+
+proc reportProgress(userp: pointer; total, current: int) =
+  echo total,' ',current
+
+echo fetch("http://neverssl.com/", onDLProgress = ProgressCallback(callback: reportProgress))
+```
+
 # Always use Libcurl
 
 You can pass `-d:puppyLibcurl` to force use of `libcurl` even on windows and macOS. This is useful to debug, if the some reason native OS API does not work. Libcurl is usually installed on macOS but requires a `curl.dll` on windows.
