@@ -19,7 +19,7 @@ proc addDefaultHeaders(req: Request) =
     # If there isn't a specific accept-encoding specified, enable gzip
     req.headers["accept-encoding"] = "gzip"
 
-proc fetch*(req: Request, onprogress: proc(dltotal, dlnow, ultotal, ulnow: int) {.closure} = nil): Response {.raises: [PuppyError].} =
+proc fetch*(req: Request, onDLProgress: ProgressCallback = ProgressCallback()): Response {.raises: [PuppyError].} =
   if req.url.scheme notin ["http", "https"]:
     raise newException(
       PuppyError, "Unsupported request scheme: " & req.url.scheme
@@ -30,7 +30,7 @@ proc fetch*(req: Request, onprogress: proc(dltotal, dlnow, ultotal, ulnow: int) 
   if req.timeout == 0:
     req.timeout = 60
 
-  platform.fetch(req, onprogress)
+  platform.fetch(req, onDLProgress)
 
 proc newRequest*(
   url: string,
@@ -45,10 +45,10 @@ proc newRequest*(
   result.headers = headers
   result.timeout = timeout
 
-proc fetch*(url: string, headers = newSeq[Header](), onprogress: proc(dltotal, dlnow, ultotal, ulnow: int) = nil): string =
+proc fetch*(url: string, headers = newSeq[Header](), onDLProgress: ProgressCallback = ProgressCallback()): string =
   let
     req = newRequest(url, "get", headers)
-    res = req.fetch(onprogress)
+    res = req.fetch(onDLProgress)
   if res.code == 200:
     return res.body
   raise newException(PuppyError,
