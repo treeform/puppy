@@ -224,10 +224,10 @@ proc fetch*(req: Request, onDLProgress: ProgressCallback): Response {.raises: [P
 
       if not isNil onDLProgress.callback:
         try:
-          onDLProgress.callback(onDLProgress.userp, contentLength, i)
+          onDLProgress.callback(onDLProgress.clientp, contentLength, i)
         except:
           raise newException(
-            PuppyError, "ProgressCallback invalid userp pointer"
+            PuppyError, "ProgressCallback invalid clientp pointer"
           )
       if i == result.body.len:
         result.body.setLen(min(i * 2, i + 100 * 1024 * 1024))

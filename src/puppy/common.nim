@@ -24,8 +24,8 @@ type
   PuppyError* = object of IOError ## Raised if an operation fails.
 
   ProgressCallback* = object
-    userp*: pointer
-    callback*: proc(userp: pointer; total, current: int)
+    clientp*: pointer
+    callback*: proc(clientp: pointer; total, current: int)
 
 proc `[]`*(headers: seq[Header], key: string): string =
   ## Get a key out of headers. Not case sensitive.

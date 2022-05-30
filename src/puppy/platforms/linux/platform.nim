@@ -11,7 +11,7 @@ type StringWrap = object
 proc cProgressCallback(clientp: pointer; dltotal, dlnow, ultotal, ulnow: cdouble): cint {.cdecl, raises: [].} =
   try:
     let cbPtr = cast[ptr ProgressCallback](clientp)
-    cbPtr.callback(cbPtr.userp, dltotal.int, dlnow.int)
+    cbPtr.callback(cbPtr.clientp, dltotal.int, dlnow.int)
   except:
     echo getCurrentExceptionMsg()
     quit(1)
