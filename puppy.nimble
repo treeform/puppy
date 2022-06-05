@@ -6,6 +6,6 @@ license     = "MIT"
 srcDir = "src"
 
 requires "nim >= 1.2.2"
-requires "urlly >= 0.2.0"
+requires "urlly >= 1.0.0"
 requires "libcurl >= 1.0.0"
-requires "zippy >= 0.7.3"
+requires "zippy >= 0.9.9"
