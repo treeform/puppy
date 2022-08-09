@@ -15,7 +15,7 @@ type
     timeout*: float32
     verb*: string
     body*: string
-    when defined(windows):
+    when defined(windows) or defined(linux) or defined(puppyLibcurl):
       allowAnyHttpsCertificate*: bool
 
   Response* = ref object

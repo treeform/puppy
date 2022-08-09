@@ -72,6 +72,10 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   # Follow redirects by default.
   discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
 
+  if req.allowAnyHttpsCertificate:
+    discard curl.easy_setopt(OPT_SSL_VERIFYPEER, 0)
+    discard curl.easy_setopt(OPT_SSL_VERIFYHOST, 0)
+
   let
     ret = curl.easy_perform()
     headerData = headerWrap.str
