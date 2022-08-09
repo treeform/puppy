@@ -15,6 +15,8 @@ type
     timeout*: float32
     verb*: string
     body*: string
+    when defined(windows):
+      allowAnyHttpsCertificate*: bool
 
   Response* = ref object
     headers*: seq[Header]

@@ -1,4 +1,4 @@
-import puppy/common, std/strutils, utils, windefs, zippy
+import puppy/common, puppy/internal, std/strutils, utils, windefs, zippy
 
 proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
@@ -114,9 +114,43 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       req.body.len.DWORD,
       0
     ) == 0:
-      raise newException(
-        PuppyError, "WinHttpSendRequest error: " & $GetLastError()
-      )
+      let error = GetLastError()
+      if error in {ERROR_WINHTTP_SECURE_FAILURE, ERROR_INTERNET_INVALID_CA} and
+        req.allowAnyHttpsCertificate:
+        # If this is a certificate error but we should allow any HTTPS cert,
+        # we need to set some options and retry sending the request.
+        # https://stackoverflow.com/questions/19338395/how-do-you-use-winhttp-to-do-ssl-with-a-self-signed-cert
+        var flags: DWORD =
+          SECURITY_FLAG_IGNORE_UNKNOWN_CA or
+          SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE or
+          SECURITY_FLAG_IGNORE_CERT_CN_INVALID or
+          SECURITY_FLAG_IGNORE_CERT_DATE_INVALID
+        if WinHttpSetOption(
+          hRequest,
+          WINHTTP_OPTION_SECURITY_FLAGS,
+          flags.addr,
+          sizeof(flags).DWORD
+        ) == 0:
+          raise newException(
+            PuppyError, "WinHttpSetOption error: " & $GetLastError()
+          )
+
+        if WinHttpSendRequest(
+          hRequest,
+          nil,
+          0,
+          req.body.cstring,
+          req.body.len.DWORD,
+          req.body.len.DWORD,
+          0
+        ) == 0:
+          raise newException(
+            PuppyError, "WinHttpSendRequest error: " & $GetLastError()
+          )
+      else:
+        raise newException(
+          PuppyError, "WinHttpSendRequest error: " & $GetLastError()
+        )
 
     if WinHttpReceiveResponse(hRequest, nil) == 0:
       raise newException(
@@ -209,7 +243,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         break
 
       if i == result.body.len:
-        result.body.setLen(min(i * 2, i + 100 * 1024 * 1024))
+        result.body.setLen(i * 2)
 
     result.body.setLen(i)
 
