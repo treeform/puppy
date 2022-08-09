@@ -56,8 +56,8 @@ when defined(windows):
       options = {poEvalCommand, poParentStreams}
     )
 
-    # Wait for server to start, very slow
-    sleep(2000)
+    # Wait for server to start, Python is mega slow
+    sleep(4000)
 
     try:
       echo "# allowAnyHttpsCertificate"
