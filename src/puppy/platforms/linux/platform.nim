@@ -16,8 +16,6 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     count: int,
     outstream: pointer
   ): int {.cdecl.} =
-    if size != 1:
-      raise newException(PuppyError, "Unexpected curl write callback size")
     let
       outbuf = cast[ptr StringWrap](outstream)
       i = outbuf.str.len
