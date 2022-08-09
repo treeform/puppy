@@ -1,4 +1,4 @@
-import puppy/common, puppy/internal, std/strutils, utils, windefs, zippy
+import puppy/common, std/strutils, utils, windefs, zippy
 
 proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
