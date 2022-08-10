@@ -1,12 +1,9 @@
 import puppy/common, std/strutils, utils, windefs, zippy
-
 proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
-
   var hSession, hConnect, hRequest: HINTERNET
   try:
     let wideUserAgent = req.headers["user-agent"].wstr()
-
     hSession = WinHttpOpen(
       cast[ptr WCHAR](wideUserAgent[0].unsafeAddr),
       WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
@@ -18,13 +15,11 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpOpen error: " & $GetLastError()
       )
-
     let ms = (req.timeout * 1000).int32
     if WinHttpSetTimeouts(hSession, ms, ms, ms, ms) == 0:
       raise newException(
         PuppyError, "WinHttpSetTimeouts error: " & $GetLastError()
       )
-
     var port: INTERNET_PORT
     if req.url.port == "":
       case req.url.scheme:
@@ -42,9 +37,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         port = parsedPort.uint16
       except ValueError as e:
         raise newException(PuppyError, "Parsing port failed", e)
-
     let wideHostname = req.url.hostname.wstr()
-
     hConnect = WinHttpConnect(
       hSession,
       cast[ptr WCHAR](wideHostname[0].unsafeAddr),
@@ -55,26 +48,21 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpConnect error: " & $GetLastError()
       )
-
     var openRequestFlags: DWORD
     if req.url.scheme == "https":
       openRequestFlags = openRequestFlags or WINHTTP_FLAG_SECURE
-
     var objectName = req.url.path
     if req.url.search != "":
       objectName &= "?" & req.url.search
-
     let
       wideVerb = req.verb.toUpperAscii().wstr()
       wideObjectName = objectName.wstr()
-
     let
       defaultAcceptType = "*/*".wstr()
       defaultacceptTypes = [
         cast[ptr WCHAR](defaultAcceptType[0].unsafeAddr),
         nil
       ]
-
     hRequest = WinHttpOpenRequest(
       hConnect,
       cast[ptr WCHAR](wideVerb[0].unsafeAddr),
@@ -88,13 +76,10 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpOpenRequest error: " & $GetLastError()
       )
-
     var requestHeaderBuf: string
     for header in req.headers:
       requestHeaderBuf &= header.key & ": " & header.value & CRLF
-
     let wideRequestHeaderBuf = requestHeaderBuf.wstr()
-
     if WinHttpAddRequestHeaders(
       hRequest,
       cast[ptr WCHAR](wideRequestHeaderBuf[0].unsafeAddr),
@@ -104,14 +89,39 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpAddRequestHeaders error: " & $GetLastError()
       )
+    if WinHttpSendRequest(
+      hRequest,
+      nil,
+      0,
+      req.body.cstring,
+      req.body.len.DWORD,
+      req.body.len.DWORD,
+      0
+    ) == 0:
+      raise newException(
+        PuppyError, "WinHttpSendRequest error: " & $GetLastError()
+      )
+      let error = GetLastError()
+      if error in {ERROR_WINHTTP_SECURE_FAILURE, ERROR_INTERNET_INVALID_CA} and
+        req.allowAnyHttpsCertificate:
+        # If this is a certificate error but we should allow any HTTPS cert,
+        # we need to set some options and retry sending the request.
+        # https://stackoverflow.com/questions/19338395/how-do-you-use-winhttp-to-do-ssl-with-a-self-signed-cert
+        var flags: DWORD =
+          SECURITY_FLAG_IGNORE_UNKNOWN_CA or
+          SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE or
+          SECURITY_FLAG_IGNORE_CERT_CN_INVALID or
+          SECURITY_FLAG_IGNORE_CERT_DATE_INVALID
+        if WinHttpSetOption(
+          hRequest,
+          WINHTTP_OPTION_SECURITY_FLAGS,
+          flags.addr,
+          sizeof(flags).DWORD
+        ) == 0:
+          raise newException(
+            PuppyError, "WinHttpSetOption error: " & $GetLastError()
+          )
 
-    if req.insecure:
-      
-      #[
-        Windows is a bit tricky with insecure ssl. Multiple requests may need to be made,
-        and such the while loop
-      ]#
-      while true:
         if WinHttpSendRequest(
           hRequest,
           nil,
@@ -121,154 +131,22 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
           req.body.len.DWORD,
           0
         ) == 0:
-          let result = GetLastError()
-
-          #[
-            (1) If you want to allow SSL certificate errors and continue
-            with the connection, you must allow and initial failure and then
-            reset the security flags. From: "HOWTO: Handle Invalid Certificate
-            Authority Error with WinInet"
-            http://support.microsoft.com/default.aspx?scid=kb;EN-US;182888
-          ]#
-
-          if result == ERROR_WINHTTP_SECURE_FAILURE or result == ERROR_INTERNET_INVALID_CA:
-            # set the flags for insecure options
-            var dwFlags: DWORD = SECURITY_FLAG_IGNORE_UNKNOWN_CA or SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE or SECURITY_FLAG_IGNORE_CERT_CN_INVALID or SECURITY_FLAG_IGNORE_CERT_DATE_INVALID
-
-            if WinHttpSetOption(
-              hRequest,
-              WINHTTP_OPTION_SECURITY_FLAGS,
-              dwFlags.addr,
-              sizeof(dwFlags).DWORD
-            ) == 1:
-              continue
-
-          #[
-            (2) Negotiate authorization handshakes may return this error
-            and require multiple attempts
-            http://msdn.microsoft.com/en-us/library/windows/desktop/aa383144%28v=vs.85%29.aspx
-          ]#
-          elif result == ERROR_WINHTTP_RESEND_REQUEST:
-            continue
-
-          else:
-            #[
-              (3) At his point, it's not an error for insecure ssl.
-              So we shall raise an error
-            ]#
-            raise newException(
-              PuppyError, "WinHttpSendRequest error: " & $GetLastError()
-            )
-
-        # (4) we reach this point. We can break, the request has been sent.
-        break
-          
-    else: 
-      if WinHttpSendRequest(
-        hRequest,
-        nil,
-        0,
-        req.body.cstring,
-        req.body.len.DWORD,
-        req.body.len.DWORD,
-        0
-      ) == 0:
+          raise newException(
+            PuppyError, "WinHttpSendRequest error: " & $GetLastError()
+          )
+      else:
         raise newException(
           PuppyError, "WinHttpSendRequest error: " & $GetLastError()
         )
 
     if WinHttpReceiveResponse(hRequest, nil) == 0:
       raise newException(
-        PuppyError, "WinHttpReceiveResponse error: " & $GetLastError()
-      )
-
-    var
-      statusCode: DWORD
-      dwSize = sizeof(DWORD).DWORD
-    if WinHttpQueryHeaders(
-      hRequest,
-      WINHTTP_QUERY_STATUS_CODE or WINHTTP_QUERY_FLAG_NUMBER,
-      nil,
-      statusCode.addr,
-      dwSize.addr,
-      nil
-    ) == 0:
-      raise newException(
-        PuppyError, "WinHttpQueryHeaders error: " & $GetLastError()
-      )
-
-    result.code = statusCode
-
-    var
-      responseHeaderBytes: DWORD
-      responseHeaderBuf: string
-
-    # Determine how big the header buffer needs to be
-    discard WinHttpQueryHeaders(
-      hRequest,
-      WINHTTP_QUERY_RAW_HEADERS_CRLF,
-      nil,
-      nil,
-      responseHeaderBytes.addr,
-      nil
-    )
-    let errorCode = GetLastError()
-    if errorCode == ERROR_INSUFFICIENT_BUFFER: # Expected!
-      # Set the header buffer to the correct size and inclue a null terminator
-      responseHeaderBuf.setLen(responseHeaderBytes)
-    else:
-      raise newException(PuppyError, "HttpQueryInfoW error: " & $errorCode)
-
-    # Read the headers into the buffer
-    if WinHttpQueryHeaders(
-      hRequest,
-      WINHTTP_QUERY_RAW_HEADERS_CRLF,
-      nil,
-      responseHeaderBuf[0].addr,
-      responseHeaderBytes.addr,
-      nil
-    ) == 0:
-      raise newException(PuppyError, "HttpQueryInfoW error: " & $errorCode)
-
-    let responseHeaders =
-      ($cast[ptr WCHAR](responseHeaderBuf[0].addr)).split(CRLF)
-
-    if responseHeaders.len == 0:
-      raise newException(PuppyError, "Error parsing response headers")
-
-    for i, line in responseHeaders:
-      if i == 0: # HTTP/1.1 200 OK
-        continue
-      if line != "":
-        let parts = line.split(":", 1)
-        if parts.len == 2:
-          result.headers.add(Header(
-            key: parts[0].strip(),
-            value: parts[1].strip()
-          ))
-
-    var i: int
-    result.body.setLen(8192)
-
-    while true:
-      var bytesRead: DWORD
-      if WinHttpReadData(
-        hRequest,
-        result.body[i].addr,
-        (result.body.len - i).DWORD,
-        bytesRead.addr
-      ) == 0:
-        raise newException(
-          PuppyError, "WinHttpReadData error: " & $GetLastError()
-        )
-
-      i += bytesRead
-
-      if bytesRead == 0:
+@@ -209,7 +243,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         break
 
       if i == result.body.len:
         result.body.setLen(min(i * 2, i + 100 * 1024 * 1024))
+        result.body.setLen(i * 2)
 
     result.body.setLen(i)
 

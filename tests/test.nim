@@ -1,7 +1,5 @@
 import os, osproc, puppy, strutils, zippy
-
 # test simple string API
-
 doAssert fetch("http://www.istrolid.com").len != 0
 doAssert fetch(
   "http://www.istrolid.com",
@@ -11,9 +9,7 @@ doAssert fetch("http://neverssl.com/").len != 0
 doAssert fetch("https://blog.istrolid.com/").len != 0
 doAssertRaises(PuppyError):
   discard fetch("https://not-a-real-site.xyz/")
-
 # test request/response API
-
 block:
   echo "# http fail"
   doAssertRaises(PuppyError):
@@ -21,7 +17,6 @@ block:
       url: parseUrl("https://not-a-real-site.xyz/"),
       verb: "get"
     ))
-
 block:
   echo "# http"
   let res = fetch(Request(
@@ -35,7 +30,6 @@ block:
   doAssert res.code == 200
   doAssert res.headers.len > 0
   doAssert res.body != ""
-
 block:
   echo "# https"
   let res = fetch(Request(
@@ -49,21 +43,33 @@ block:
   doAssert res.headers.len > 0
   doAssert res.body != ""
 
-block:
-  echo "# insecure"
-  let res = fetch(
-    Request(
-      url: parseUrl("https://127.0.0.1/connect"),
-      verb: "get",
-      insecure: true,
+when defined(windows):
+  block:
+    let httpsServer = startProcess(
+      "python tests/https_server.py",
+      options = {poEvalCommand, poParentStreams}
     )
-  )
-  echo "res.code: ", res.code
-  echo "res.headers: ", res.headers
-  echo "res.body.len: ", res.body.len
-  doAssert res.code == 200
-  doAssert res.headers.len > 0
-  doAssert res.body != ""
+
+    # Wait for server to start, Python is mega slow
+    sleep(4000)
+
+    try:
+      echo "# allowAnyHttpsCertificate"
+      let res = fetch(
+        Request(
+          url: parseUrl("https://127.0.0.1/connect"),
+          verb: "get",
+          allowAnyHttpsCertificate: true,
+        )
+      )
+      echo "res.code: ", res.code
+      echo "res.headers: ", res.headers
+      echo "res.body.len: ", res.body.len
+      doAssert res.code == 200
+      doAssert res.headers.len > 0
+      doAssert res.body != ""
+    finally:
+      httpsServer.terminate()
 
 # test headers
 
@@ -71,21 +77,17 @@ block:
   let req = Request()
   req.headers["Content-Type"] = "application/json"
   doAssert req.headers["content-type"] == "application/json"
-
 block:
   let req = Request()
   req.headers["Content-Type"] = "application/json"
   req.headers["content-type"] = "application/json"
   doAssert req.headers["Content-TYPE"] == "application/json"
-
 let debugServer = startProcess(
   "tests/debug_server",
   options = {poParentStreams}
 )
-
 # Wait for server to start
 sleep(100)
-
 try:
   for i in 0 ..< 10:
     block:
@@ -93,7 +95,6 @@ try:
       doAssert fetch("http://localhost:8080/ok") == "ok"
       doAssertRaises(PuppyError):
         discard fetch("http://localhost:8080/401")
-
     block:
       # test 404
       let res = fetch(Request(
@@ -102,7 +103,6 @@ try:
       ))
       doAssert res.code == 404
       doAssert res.body == "Not found."
-
     block:
       # test 500
       let res = fetch(Request(
@@ -111,12 +111,10 @@ try:
       ))
       doAssert res.code == 500
       doAssert res.body == "500 Unkown Error (simulated)."
-
     block:
       # test hash
       doAssert fetch("http://localhost:8080/url#hash") == "/url"
       doAssert fetch("http://localhost:8080/url?a=b#hash") == "/url?a=b"
-
     block:
       # test gzip
       let res = fetch(Request(
@@ -126,7 +124,6 @@ try:
       ))
       doAssert res.code == 200
       doAssert res.body == "gzip'ed response body"
-
     block:
       # test post
       let req = Request(
@@ -138,7 +135,6 @@ try:
       doAssert ($req).startsWith("POST http://localhost:8080/post")
       doAssert res.code == 200
       doAssert res.body == "some data"
-
     block:
       # test empty post
       let req = Request(
@@ -150,7 +146,6 @@ try:
       doAssert ($req).startsWith("POST http://localhost:8080/post")
       doAssert res.code == 200
       doAssert res.body == ""
-
     block:
       # test post + gzip
       let res = fetch(Request(
@@ -165,7 +160,6 @@ try:
       ))
       doAssert res.code == 200
       doAssert res.body == "gzip'ed request body"
-
     block:
       # test headers
       let res = fetch(Request(
@@ -179,6 +173,5 @@ try:
       doAssert res.code == 200
       doAssert res.headers["1"] == "a"
       doAssert res.headers["2"] == "b"
-
 finally:
   debugServer.terminate()
