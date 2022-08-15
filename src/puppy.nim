@@ -37,7 +37,7 @@ proc newRequest*(
   verb = "get",
   headers = newSeq[Header](),
   timeout: float32 = 60,
-  insecure: bool = false,
+  allowAnyHttpsCertificate: bool = false,
 ): Request =
   ## Allocates a new request object with defaults.
   result = Request()
@@ -45,7 +45,7 @@ proc newRequest*(
   result.verb = verb
   result.headers = headers
   result.timeout = timeout
-  result.insecure = insecure
+  result.allowAnyHttpsCertificate = allowAnyHttpsCertificate
   
 proc fetch*(url: string, headers = newSeq[Header]()): string =
   let

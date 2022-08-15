@@ -1,9 +1,12 @@
 import puppy/common, std/strutils, utils, windefs, zippy
+
 proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
+
   var hSession, hConnect, hRequest: HINTERNET
   try:
     let wideUserAgent = req.headers["user-agent"].wstr()
+
     hSession = WinHttpOpen(
       cast[ptr WCHAR](wideUserAgent[0].unsafeAddr),
       WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
@@ -15,11 +18,13 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpOpen error: " & $GetLastError()
       )
+
     let ms = (req.timeout * 1000).int32
     if WinHttpSetTimeouts(hSession, ms, ms, ms, ms) == 0:
       raise newException(
         PuppyError, "WinHttpSetTimeouts error: " & $GetLastError()
       )
+
     var port: INTERNET_PORT
     if req.url.port == "":
       case req.url.scheme:
@@ -37,7 +42,9 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         port = parsedPort.uint16
       except ValueError as e:
         raise newException(PuppyError, "Parsing port failed", e)
+
     let wideHostname = req.url.hostname.wstr()
+
     hConnect = WinHttpConnect(
       hSession,
       cast[ptr WCHAR](wideHostname[0].unsafeAddr),
@@ -48,21 +55,26 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpConnect error: " & $GetLastError()
       )
+
     var openRequestFlags: DWORD
     if req.url.scheme == "https":
       openRequestFlags = openRequestFlags or WINHTTP_FLAG_SECURE
+
     var objectName = req.url.path
     if req.url.search != "":
       objectName &= "?" & req.url.search
+
     let
       wideVerb = req.verb.toUpperAscii().wstr()
       wideObjectName = objectName.wstr()
+
     let
       defaultAcceptType = "*/*".wstr()
       defaultacceptTypes = [
         cast[ptr WCHAR](defaultAcceptType[0].unsafeAddr),
         nil
       ]
+
     hRequest = WinHttpOpenRequest(
       hConnect,
       cast[ptr WCHAR](wideVerb[0].unsafeAddr),
@@ -76,10 +88,13 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpOpenRequest error: " & $GetLastError()
       )
+
     var requestHeaderBuf: string
     for header in req.headers:
       requestHeaderBuf &= header.key & ": " & header.value & CRLF
+
     let wideRequestHeaderBuf = requestHeaderBuf.wstr()
+
     if WinHttpAddRequestHeaders(
       hRequest,
       cast[ptr WCHAR](wideRequestHeaderBuf[0].unsafeAddr),
@@ -89,6 +104,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpAddRequestHeaders error: " & $GetLastError()
       )
+
     if WinHttpSendRequest(
       hRequest,
       nil,
@@ -101,6 +117,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       raise newException(
         PuppyError, "WinHttpSendRequest error: " & $GetLastError()
       )
+
       let error = GetLastError()
       if error in {ERROR_WINHTTP_SECURE_FAILURE, ERROR_INTERNET_INVALID_CA} and
         req.allowAnyHttpsCertificate:
@@ -141,11 +158,92 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
 
     if WinHttpReceiveResponse(hRequest, nil) == 0:
       raise newException(
-@@ -209,7 +243,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
+        PuppyError, "WinHttpReceiveResponse error: " & $GetLastError()
+      )
+
+    var
+      statusCode: DWORD
+      dwSize = sizeof(DWORD).DWORD
+    if WinHttpQueryHeaders(
+      hRequest,
+      WINHTTP_QUERY_STATUS_CODE or WINHTTP_QUERY_FLAG_NUMBER,
+      nil,
+      statusCode.addr,
+      dwSize.addr,
+      nil
+    ) == 0:
+      raise newException(
+        PuppyError, "WinHttpQueryHeaders error: " & $GetLastError()
+      )
+
+    result.code = statusCode
+    var
+      responseHeaderBytes: DWORD
+      responseHeaderBuf: string
+
+    # Determine how big the header buffer needs to be
+    discard WinHttpQueryHeaders(
+      hRequest,
+      WINHTTP_QUERY_RAW_HEADERS_CRLF,
+      nil,
+      nil,
+      responseHeaderBytes.addr,
+      nil
+    )
+    let errorCode = GetLastError()
+    if errorCode == ERROR_INSUFFICIENT_BUFFER: # Expected!
+      # Set the header buffer to the correct size and inclue a null terminator
+      responseHeaderBuf.setLen(responseHeaderBytes)
+    else:
+      raise newException(PuppyError, "HttpQueryInfoW error: " & $errorCode)
+
+    # Read the headers into the buffer
+    if WinHttpQueryHeaders(
+      hRequest,
+      WINHTTP_QUERY_RAW_HEADERS_CRLF,
+      nil,
+      responseHeaderBuf[0].addr,
+      responseHeaderBytes.addr,
+      nil
+    ) == 0:
+      raise newException(PuppyError, "HttpQueryInfoW error: " & $errorCode)
+
+    let responseHeaders =
+      ($cast[ptr WCHAR](responseHeaderBuf[0].addr)).split(CRLF)
+
+    if responseHeaders.len == 0:
+      raise newException(PuppyError, "Error parsing response headers")
+
+    for i, line in responseHeaders:
+      if i == 0: # HTTP/1.1 200 OK
+        continue
+      if line != "":
+        let parts = line.split(":", 1)
+        if parts.len == 2:
+          result.headers.add(Header(
+            key: parts[0].strip(),
+            value: parts[1].strip()
+          ))
+
+    var i: int
+    result.body.setLen(8192)
+
+    while true:
+      var bytesRead: DWORD
+      if WinHttpReadData(
+        hRequest,
+        result.body[i].addr,
+        (result.body.len - i).DWORD,
+        bytesRead.addr
+      ) == 0:
+        raise newException(
+          PuppyError, "WinHttpReadData error: " & $GetLastError()
+        )
+      i += bytesRead
+      if bytesRead == 0:
         break
 
       if i == result.body.len:
-        result.body.setLen(min(i * 2, i + 100 * 1024 * 1024))
         result.body.setLen(i * 2)
 
     result.body.setLen(i)

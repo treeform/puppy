@@ -41,8 +41,51 @@ const
   SECURITY_FLAG_IGNORE_CERT_DATE_INVALID* = 0x00002000
 
 {.push importc, stdcall.}
+{.push importc, stdcall.}
 
-@@ -88,6 +96,13 @@ proc WinHttpOpenRequest*(
+proc GetLastError*(): DWORD {.dynlib: "kernel32".}
+
+proc MultiByteToWideChar*(
+  codePage: UINT,
+  dwFlags: DWORD,
+  lpMultiByteStr: LPCCH,
+  cbMultiByte: int32,
+  lpWideCharStr: LPWSTR,
+  cchWideChar: int32
+): int32 {.dynlib: "kernel32".}
+
+proc WideCharToMultiByte*(
+  codePage: UINT,
+  dwFlags: DWORD,
+  lpWideCharStr: LPCWCH,
+  cchWideChar: int32,
+  lpMultiByteStr: LPSTR,
+  cbMultiByte: int32,
+  lpDefaultChar: LPCCH,
+  lpUsedDefaultChar: LPBOOL
+): int32 {.dynlib: "kernel32".}
+
+proc WinHttpOpen*(
+  lpszAgent: LPCWSTR,
+  dwAccessType: DWORD,
+  lpszProxy: LPCWSTR,
+  lpszProxyBypass: LPCWSTR,
+  dwFlags: DWORD
+): HINTERNET {.dynlib: "winhttp".}
+
+proc WinHttpSetTimeouts*(
+  hSession: HINTERNET,
+  nResolveTimeout, nConnectTimeout, nSendTimeout, nReceiveTimeout: int32
+): BOOL {.dynlib: "winhttp".}
+
+proc WinHttpConnect*(
+  hSession: HINTERNET,
+  lpszServerName: LPCWSTR,
+  nServerPort: INTERNET_PORT,
+  dwFlags: DWORD
+): HINTERNET {.dynlib: "winhttp".}
+
+proc WinHttpOpenRequest*(
   dwFlags: DWORD
 ): HINTERNET {.dynlib: "winhttp".}
 
