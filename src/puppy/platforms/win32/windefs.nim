@@ -86,6 +86,12 @@ proc WinHttpConnect*(
 ): HINTERNET {.dynlib: "winhttp".}
 
 proc WinHttpOpenRequest*(
+  hConnect: HINTERNET,
+  lpszVerb: LPCWSTR,
+  lpszObjectName: LPCWSTR,
+  lpszVersion: LPCWSTR,
+  lpszReferrer: LPCWSTR,
+  lplpszAcceptTypes: ptr LPCWSTR,
   dwFlags: DWORD
 ): HINTERNET {.dynlib: "winhttp".}
 
@@ -102,6 +108,7 @@ proc WinHttpAddRequestHeaders*(
   dwHeadersLength: DWORD,
   dwModifiers: DWORD
 ): BOOL {.dynlib: "winhttp".}
+
 proc WinHttpSendRequest*(
   hRequest: HINTERNET,
   lpszHeaders: LPCWSTR,
@@ -111,10 +118,12 @@ proc WinHttpSendRequest*(
   dwTotalLength: DWORD,
   dwContext: DWORD_PTR
 ): BOOL {.dynlib: "winhttp".}
+
 proc WinHttpReceiveResponse*(
   hRequest: HINTERNET,
   lpReserved: LPVOID
 ): BOOL {.dynlib: "winhttp".}
+
 proc WinHttpQueryHeaders*(
   hRequest: HINTERNET,
   dwInfoLevel: DWORD,
@@ -123,11 +132,13 @@ proc WinHttpQueryHeaders*(
   lpdwBufferLength: LPDWORD,
   lpdwIndex: LPDWORD
 ): BOOL {.dynlib: "winhttp".}
+
 proc WinHttpReadData*(
   hFile: HINTERNET,
   lpBuffer: LPVOID,
   dwNumberOfBytesToRead: DWORD,
   lpdwNumberOfBytesRead: LPDWORD
 ): BOOL {.dynlib: "winhttp".}
+
 proc WinHttpCloseHandle*(hInternet: HINTERNET): BOOL {.dynlib: "winhttp".}
 {.pop.}
