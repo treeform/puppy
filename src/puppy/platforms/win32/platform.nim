@@ -114,9 +114,6 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       req.body.len.DWORD,
       0
     ) == 0:
-      raise newException(
-        PuppyError, "WinHttpSendRequest error: " & $GetLastError()
-      )
 
       let error = GetLastError()
       if error in {ERROR_WINHTTP_SECURE_FAILURE, ERROR_INTERNET_INVALID_CA} and
