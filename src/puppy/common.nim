@@ -15,12 +15,13 @@ type
     timeout*: float32
     verb*: string
     body*: string
+    when defined(puppyLibcurl) or (defined(windows) or not defined(macosx)):
+      allowAnyHttpsCertificate*: bool
 
   Response* = ref object
     headers*: seq[Header]
     code*: int
     body*: string
-
   PuppyError* = object of IOError ## Raised if an operation fails.
 
 proc `[]`*(headers: seq[Header], key: string): string =

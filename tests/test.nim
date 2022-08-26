@@ -1,12 +1,12 @@
 import os, osproc, puppy, strutils, zippy
 
 # test simple string API
-
 doAssert fetch("http://www.istrolid.com").len != 0
 doAssert fetch(
   "http://www.istrolid.com",
   headers = @[Header(key: "User-Agent", value: "Nim 1.0")]
 ).len != 0
+
 doAssert fetch("http://neverssl.com/").len != 0
 doAssert fetch("https://blog.istrolid.com/").len != 0
 doAssertRaises(PuppyError):
@@ -48,6 +48,34 @@ block:
   doAssert res.code == 200
   doAssert res.headers.len > 0
   doAssert res.body != ""
+
+when defined(windows):
+  block:
+    let httpsServer = startProcess(
+      "python tests/https_server.py",
+      options = {poEvalCommand, poParentStreams}
+    )
+
+    # Wait for server to start, Python is mega slow
+    sleep(4000)
+
+    try:
+      echo "# allowAnyHttpsCertificate"
+      let res = fetch(
+        Request(
+          url: parseUrl("https://127.0.0.1/connect"),
+          verb: "get",
+          allowAnyHttpsCertificate: true,
+        )
+      )
+      echo "res.code: ", res.code
+      echo "res.headers: ", res.headers
+      echo "res.body.len: ", res.body.len
+      doAssert res.code == 200
+      doAssert res.headers.len > 0
+      doAssert res.body != ""
+    finally:
+      httpsServer.terminate()
 
 # test headers
 

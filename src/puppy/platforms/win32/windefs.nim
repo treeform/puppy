@@ -4,7 +4,6 @@ when defined(cpu64):
 else:
   type
     ULONG_PTR* = uint32
-
 type
   BOOL* = int32
   LPBOOL* = ptr BOOL
@@ -22,7 +21,6 @@ type
   INTERNET_PORT* = WORD
   DWORD_PTR* = ULONG_PTR
   LPVOID* = pointer
-
 const
   CP_UTF8* = 65001
   WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY* = 4
@@ -33,7 +31,16 @@ const
   WINHTTP_QUERY_FLAG_NUMBER* = 0x20000000
   WINHTTP_QUERY_RAW_HEADERS_CRLF* = 22
   ERROR_INSUFFICIENT_BUFFER* = 122
+  ERROR_WINHTTP_SECURE_FAILURE* = 12175
+  ERROR_INTERNET_INVALID_CA* = 12045
+  WINHTTP_OPTION_SECURITY_FLAGS* = 31
+  SECURITY_FLAG_IGNORE_UNKNOWN_CA* = 0x00000100
+  # SECURITY_FLAG_IGNORE_WRONG_USAGE* = 0x00000200
+  SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE* = 0x00000200
+  SECURITY_FLAG_IGNORE_CERT_CN_INVALID* = 0x00001000
+  SECURITY_FLAG_IGNORE_CERT_DATE_INVALID* = 0x00002000
 
+{.push importc, stdcall.}
 {.push importc, stdcall.}
 
 proc GetLastError*(): DWORD {.dynlib: "kernel32".}
@@ -88,6 +95,13 @@ proc WinHttpOpenRequest*(
   dwFlags: DWORD
 ): HINTERNET {.dynlib: "winhttp".}
 
+proc WinHttpSetOption* (
+  hInternet: HINTERNET,
+  dwOption: DWORD,
+  lpBuffer: LPVOID,
+  dwBufferLength: DWORD
+): BOOL {.dynlib: "winhttp".}
+
 proc WinHttpAddRequestHeaders*(
   hRequest: HINTERNET,
   lpszHeaders: LPCWSTR,
@@ -127,5 +141,4 @@ proc WinHttpReadData*(
 ): BOOL {.dynlib: "winhttp".}
 
 proc WinHttpCloseHandle*(hInternet: HINTERNET): BOOL {.dynlib: "winhttp".}
-
 {.pop.}
