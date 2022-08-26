@@ -95,7 +95,7 @@ proc WinHttpOpenRequest*(
   dwFlags: DWORD
 ): HINTERNET {.dynlib: "winhttp".}
 
-proc WinHttpSetOption* (
+proc WinHttpSetOption*(
   hInternet: HINTERNET,
   dwOption: DWORD,
   lpBuffer: LPVOID,

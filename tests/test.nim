@@ -57,7 +57,7 @@ when defined(windows):
     )
 
     # Wait for server to start, Python is mega slow
-    sleep(4000)
+    sleep(5000)
 
     try:
       echo "# allowAnyHttpsCertificate"

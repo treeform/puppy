@@ -31,10 +31,10 @@ class ExecuteServer(BaseHTTPRequestHandler):
 def start_server():
     server = HTTPServer(host, ExecuteServer)
     server.socket = ssl.wrap_socket(server.socket,
-                                     server_side=True,
-                                     certfile="tests/data/ssl.crt",
-                                     keyfile="tests/data/ssl.key",
-                                     ssl_version=ssl.PROTOCOL_TLS)
+                                    server_side=True,
+                                    certfile="tests/data/ssl.crt",
+                                    keyfile="tests/data/ssl.key",
+                                    ssl_version=ssl.PROTOCOL_TLS)
 
     print(f"Starting server, listening on port {host[1]}")
     server.serve_forever()
