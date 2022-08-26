@@ -36,8 +36,7 @@ proc newRequest*(
   url: string,
   verb = "get",
   headers = newSeq[Header](),
-  timeout: float32 = 60,
-  allowAnyHttpsCertificate: bool = false,
+  timeout: float32 = 60
 ): Request =
   ## Allocates a new request object with defaults.
   result = Request()
@@ -45,8 +44,7 @@ proc newRequest*(
   result.verb = verb
   result.headers = headers
   result.timeout = timeout
-  result.allowAnyHttpsCertificate = allowAnyHttpsCertificate
-  
+
 proc fetch*(url: string, headers = newSeq[Header]()): string =
   let
     req = newRequest(url, "get", headers)

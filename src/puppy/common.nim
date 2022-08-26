@@ -1,4 +1,4 @@
-import urlly, strutils
+import strutils, urlly
 
 export urlly
 
