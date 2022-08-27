@@ -1,5 +1,6 @@
 import puppy/common, urlly
 
+
 when defined(windows) and not defined(puppyLibcurl):
   # WinHTTP Windows
   import puppy/platforms/win32/platform
@@ -54,3 +55,23 @@ proc fetch*(url: string, headers = newSeq[Header]()): string =
   raise newException(PuppyError,
     "Non 200 response code: " & $res.code & "\n" & res.body
   )
+
+
+# these more closely match how my mind works
+import std/json
+proc get(url: string): string =
+    let req = Request(
+    url: parseUrl(url),
+    verb: "get",
+    )
+    let res = fetch(req).body
+    return res
+
+proc post(url: string, body:string): JsonNode =
+    let req = Request(
+    url: parseUrl(url),
+    verb: "post",
+    body: body
+    )
+    let res = parseJson(fetch(req).body)
+    return res
