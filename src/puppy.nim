@@ -67,11 +67,11 @@ proc get(url: string): string =
     let res = fetch(req).body
     return res
 
-proc post(url: string, body:string): JsonNode =
+proc post(url: string, body:string): string =
     let req = Request(
     url: parseUrl(url),
     verb: "post",
     body: body
     )
-    let res = parseJson(fetch(req).body)
+    let res = fetch(req).body
     return res
