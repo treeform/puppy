@@ -57,8 +57,8 @@ proc fetch*(url: string, headers = newSeq[Header]()): string =
   )
 
 
-# these more closely match how my mind works
-import std/json
+# these more closely match how my mind works and python requests module work.
+
 proc get(url: string): string =
     let req = Request(
     url: parseUrl(url),
