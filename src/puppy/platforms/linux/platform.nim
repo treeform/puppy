@@ -1,11 +1,22 @@
-import libcurl, puppy/common, std/strutils, zippy
+import libcurl except Progress_callback
+import puppy/common, std/strutils, zippy
+from std/sugar import capture
+from std/decls import byaddr
 
 type StringWrap = object
   ## As strings are value objects they need
   ## some sort of wrapper to be passed to C.
   str: string
 
-proc fetch*(req: Request): Response {.raises: [PuppyError].} =
+proc cProgressCallback(clientp: pointer; dltotal, dlnow, ultotal, ulnow: cdouble): cint {.cdecl, raises: [].} =
+  try:
+    let cbPtr = cast[ptr ProgressCallback](clientp)
+    cbPtr.callback(cbPtr.clientp, dltotal.int, dlnow.int)
+  except:
+    echo getCurrentExceptionMsg()
+    quit(1)
+
+proc fetch*(req: Request, onDLProgress: ProgressCallback): Response {.raises: [PuppyError].} =
   result = Response()
 
   {.push stackTrace: off.}
@@ -36,6 +47,14 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   discard curl.easy_setopt(OPT_URL, strings[0].cstring)
   discard curl.easy_setopt(OPT_CUSTOMREQUEST, strings[1].cstring)
   discard curl.easy_setopt(OPT_TIMEOUT, req.timeout.int)
+
+  if not isNil onDLProgress.callback:
+    discard curl.easy_setopt(OPT_NOPROGRESS, 0)
+    #discard curl.easy_setopt(OPT_PROGRESSDATA, cast[pointer](onprogress.rawProc))
+    #discard curl.easy_setopt(OPT_PROGRESSFUNCTION, cProgressCallback)
+    discard curl.easy_setopt(OPT_PROGRESSDATA, cast[pointer](unsafeAddr onDLProgress))
+    #discard curl.easy_setopt(OPT_PROGRESSFUNCTION, proc(clientp: pointer, dlt,dln,ult,uln: cdouble): cint = onprogress(clientp, dlt.int,dln.int))
+    discard curl.easy_setopt(OPT_PROGRESSFUNCTION, cProgressCallback)
 
   # Create the Pslist for passing headers to curl manually. This is to
   # avoid needing to call slist_free_all which creates problems

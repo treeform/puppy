@@ -1,6 +1,6 @@
 import puppy/common, std/strutils, utils, windefs, zippy
 
-proc fetch*(req: Request): Response {.raises: [PuppyError].} =
+proc fetch*(req: Request, onDLProgress: ProgressCallback): Response {.raises: [PuppyError].} =
   result = Response()
 
   var hSession, hConnect, hRequest: HINTERNET
@@ -221,6 +221,20 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
             key: parts[0].strip(),
             value: parts[1].strip()
           ))
+    
+    var contentLength = 0
+    block:
+      var contentLengthValue = ""
+      try:
+        for header in result.headers:
+          if header.key == "Content-Length":
+            contentLengthValue = header.value
+            contentLength = parseInt(header.value)
+      except ValueError:
+        raise newException(
+          PuppyError,
+          "Content-Length error: '" & contentLengthValue & "' not an integer."
+        )
 
     var i: int
     result.body.setLen(8192)
@@ -240,6 +254,13 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       if bytesRead == 0:
         break
 
+      if not isNil onDLProgress.callback:
+        try:
+          onDLProgress.callback(onDLProgress.clientp, contentLength, i)
+        except:
+          raise newException(
+            PuppyError, "ProgressCallback invalid clientp pointer"
+          )
       if i == result.body.len:
         result.body.setLen(i * 2)
 

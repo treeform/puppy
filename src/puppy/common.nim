@@ -24,6 +24,10 @@ type
     body*: string
   PuppyError* = object of IOError ## Raised if an operation fails.
 
+  ProgressCallback* = object
+    clientp*: pointer
+    callback*: proc(clientp: pointer; total, current: int)
+
 proc `[]`*(headers: seq[Header], key: string): string =
   ## Get a key out of headers. Not case sensitive.
   ## Use a for loop to get multiple keys.
