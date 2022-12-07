@@ -1,4 +1,4 @@
-import macros, typetraits, strutils
+import macros, strutils, typetraits
 
 type
   Class* = distinct int
