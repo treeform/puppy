@@ -13,9 +13,9 @@ else:
 export common, urlly
 
 proc addDefaultHeaders(req: Request) =
-  if req.headers["user-agent"].len == 0:
+  if req.headers["user-agent"] == "":
     req.headers["user-agent"] = "Puppy"
-  if req.headers["accept-encoding"].len == 0:
+  if req.headers["accept-encoding"] == "":
     # If there isn't a specific accept-encoding specified, enable gzip
     req.headers["accept-encoding"] = "gzip"
 

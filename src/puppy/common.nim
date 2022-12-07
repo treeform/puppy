@@ -16,6 +16,7 @@ type
     verb*: string
     body*: string
     when defined(puppyLibcurl) or (defined(windows) or not defined(macosx)):
+      # If you want to use this on Mac, please us -d:puppyLibcurl
       allowAnyHttpsCertificate*: bool
 
   Response* = ref object

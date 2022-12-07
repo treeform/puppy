@@ -1,6 +1,6 @@
 version     = "1.6.0"
 author      = "Andre von Houck"
-description = "Puppy fetches HTML pages for Nim."
+description = "Puppy fetches resources via HTTP and HTTPS."
 license     = "MIT"
 
 srcDir = "src"

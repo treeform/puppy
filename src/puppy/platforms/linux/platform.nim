@@ -66,7 +66,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   discard curl.easy_setopt(OPT_HEADERDATA, headerWrap.addr)
   discard curl.easy_setopt(OPT_HEADERFUNCTION, curlWriteFn)
 
-  # On windows look for cacert.pem.
+  # On Windows look for cacert.pem.
   when defined(windows):
     discard curl.easy_setopt(OPT_CAINFO, "cacert.pem".cstring)
   # Follow redirects by default.
