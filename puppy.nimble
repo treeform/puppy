@@ -1,4 +1,4 @@
-version     = "1.6.0"
+version     = "1.6.1"
 author      = "Andre von Houck"
 description = "Puppy fetches resources via HTTP and HTTPS."
 license     = "MIT"
