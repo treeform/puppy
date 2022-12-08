@@ -1,6 +1,6 @@
 <img src="docs/puppyBanner.png">
 
-# Puppy - Fetch url resources via HTTP and HTTPS.
+# Puppy - Fetch resources via HTTP and HTTPS.
 
 `nimble install puppy`
 

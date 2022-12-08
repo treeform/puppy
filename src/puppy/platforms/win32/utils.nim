@@ -15,7 +15,7 @@ proc wstr*(str: string): string =
     0,
     str.cstring,
     str.len.int32,
-    cast[ptr WCHAR](result[0].addr),
+    cast[ptr WCHAR](result.cstring),
     wlen
   )
 
@@ -37,7 +37,7 @@ proc `$`*(p: ptr WCHAR): string =
       0,
       p,
       -1,
-      result[0].addr,
+      result.cstring,
       len,
       nil,
       nil
