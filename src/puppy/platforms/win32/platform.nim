@@ -117,7 +117,8 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
 
       let error = GetLastError()
       if error in {
-        ERROR_WINHTTP_SECURE_FAILURE, ERROR_INTERNET_INVALID_CA,
+        ERROR_WINHTTP_SECURE_FAILURE,
+        ERROR_INTERNET_INVALID_CA,
         ERROR_INTERNET_SEC_CERT_DATE_INVALID,
         ERROR_INTERNET_SEC_INVALID_CERT,
         ERROR_INTERNET_SEC_CERT_CN_INVALID,
