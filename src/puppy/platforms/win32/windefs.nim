@@ -49,7 +49,6 @@ const
   SECURITY_FLAG_IGNORE_CERT_DATE_INVALID* = 0x00002000
 
 {.push importc, stdcall.}
-{.push importc, stdcall.}
 
 proc GetLastError*(): DWORD {.dynlib: "kernel32".}
 
