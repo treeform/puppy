@@ -23,6 +23,7 @@ type
     headers*: seq[Header]
     code*: int
     body*: string
+
   PuppyError* = object of IOError ## Raised if an operation fails.
 
 proc `[]`*(headers: seq[Header], key: string): string =
