@@ -79,6 +79,6 @@ echo res.headers
 echo res.body.len
 ```
 
-# Always use Libcurl
+## Always use Libcurl
 
 You can pass `-d:puppyLibcurl` to force use of `libcurl` even on windows and macOS. This is useful to debug, if the some reason native OS API does not work. Libcurl is usually installed on macOS but requires a `curl.dll` on windows.
