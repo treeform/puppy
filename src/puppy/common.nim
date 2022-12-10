@@ -1,4 +1,4 @@
-import strutils, urlly
+import std/strutils, urlly
 
 export urlly
 
@@ -30,14 +30,14 @@ proc `[]`*(headers: seq[Header], key: string): string =
   ## Get a key out of headers. Not case sensitive.
   ## Use a for loop to get multiple keys.
   for header in headers:
-    if header.key.toLowerAscii() == key.toLowerAscii():
+    if cmpIgnorecase(header.key, key) == 0:
       return header.value
 
 proc `[]=`*(headers: var seq[Header], key, value: string) =
   ## Sets a key in the headers. Not case sensitive.
   ## If key is not there appends a new key-value pair at the end.
   for header in headers.mitems:
-    if header.key.toLowerAscii() == key.toLowerAscii():
+    if cmpIgnorecase(header.key, key) == 0:
       header.value = value
       return
   headers.add(Header(key: key, value: value))
