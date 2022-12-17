@@ -45,10 +45,56 @@ proc newRequest*(
   result.headers = headers
   result.timeout = timeout
 
+proc get*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  timeout: float32 = 60
+): Response =
+  fetch(newRequest(url, "GET", headers, timeout))
+
+proc post*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  body: sink string = "",
+  timeout: float32 = 60
+): Response =
+  let request = newRequest(url, "POST", headers, timeout)
+  request.body = move body
+  fetch(request)
+
+proc put*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  body: sink string = "",
+  timeout: float32 = 60
+): Response =
+  let request = newRequest(url, "PUT", headers, timeout)
+  request.body = move body
+  fetch(request)
+
+proc patch*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  body: sink string = "",
+  timeout: float32 = 60
+): Response =
+  let request = newRequest(url, "PATCH", headers, timeout)
+  request.body = move body
+  fetch(request)
+
+proc delete*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  timeout: float32 = 60
+): Response =
+  fetch(newRequest(url, "DELETE", headers, timeout))
+
 proc fetch*(url: string, headers = emptyHttpHeaders()): string =
-  let
-    req = newRequest(url, "get", headers)
-    res = req.fetch()
+  ## Simple fetch that directly returns the GET response body.
+  ## Raises an exception if anything goes wrong or if the response code
+  ## is not 200. See get, post, put etc for similar calls that return
+  ## a response object.
+  let res = get(url, headers)
   if res.code == 200:
     return res.body
   raise newException(PuppyError,

@@ -46,32 +46,37 @@ Need a more complex API?
 * headers: User-Agent, Content-Type..
 * response code: 200, 404, 500..
 * response headers: Content-Type..
-* error: timeout, DNS fail ...
 
-Use request/response instead.
+Use these instead.
 
 ```nim
-Request* = ref object
-  url*: Url
-  headers*: HttpHeaders
-  timeout*: float32
-  verb*: string
-  body*: string
-
 Response* = ref object
-  url*: Url
   headers*: HttpHeaders
   code*: int
   body*: string
 ```
 
-Usage example:
+Usage examples:
 
 ```nim
-let request = newRequest("http://www.istrolid.com")
-request.headers["Auth"] = "1"
+import puppy
 
-let response = fetch(request)
+let response = get("http://www.istrolid.com", @[("Auth", "1")])
+echo response.code
+echo response.headers
+echo response.body.len
+```
+
+```nim
+import puppy
+
+let body = "{\"json\":true}"
+
+let response = post(
+    "http://api.website.com",
+    @[("Content-Type", "application/json")],
+    body
+)
 echo response.code
 echo response.headers
 echo response.body.len
