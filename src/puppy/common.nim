@@ -1,6 +1,6 @@
-import std/strutils, urlly, webby/httpheaders
+import std/strutils, webby
 
-export urlly, httpheaders
+export webby
 
 const CRLF* = "\r\n"
 
