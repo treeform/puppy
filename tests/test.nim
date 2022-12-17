@@ -49,6 +49,14 @@ block:
   doAssert res.headers.len > 0
   doAssert res.body != ""
 
+block:
+  discard fetch(Request(
+    url: parseUrl("https://www.google.com"),
+    verb: "get",
+    headers: @[Header(key: "User-Agent", value: "Puppy")]
+    )
+  )
+
 when defined(windows):
   block:
     let httpsServer = startProcess(
