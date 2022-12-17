@@ -90,8 +90,8 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       )
 
     var requestHeaderBuf: string
-    for header in req.headers:
-      requestHeaderBuf &= header.key & ": " & header.value & CRLF
+    for (k, v) in req.headers:
+      requestHeaderBuf &= k & ": " & v & CRLF
 
     let wideRequestHeaderBuf = requestHeaderBuf.wstr()
 
@@ -226,9 +226,9 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       if line != "":
         let parts = line.split(":", 1)
         if parts.len == 2:
-          result.headers.add(Header(
-            key: parts[0].strip(),
-            value: parts[1].strip()
+          result.headers.add((
+            parts[0].strip(),
+            parts[1].strip()
           ))
 
     var i: int

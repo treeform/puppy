@@ -46,37 +46,40 @@ Need a more complex API?
 * headers: User-Agent, Content-Type..
 * response code: 200, 404, 500..
 * response headers: Content-Type..
-* error: timeout, DNS fail ...
 
-Use request/response instead.
+Use these instead.
 
 ```nim
-Request* = ref object
-  url*: Url
-  headers*: seq[Header]
-  timeout*: float32
-  verb*: string
-  body*: string
-
 Response* = ref object
-  url*: Url
-  headers*: seq[Header]
+  headers*: HttpHeaders
   code*: int
   body*: string
 ```
 
-Usage example:
+Usage examples:
 
 ```nim
-let req = Request(
-  url: parseUrl("http://www.istrolid.com"),
-  verb: "get",
-  headers: @[Header(key: "Auth", value: "1")]
+import puppy
+
+let response = get("http://www.istrolid.com", @[("Auth", "1")])
+echo response.code
+echo response.headers
+echo response.body.len
+```
+
+```nim
+import puppy
+
+let body = "{\"json\":true}"
+
+let response = post(
+    "http://api.website.com",
+    @[("Content-Type", "application/json")],
+    body
 )
-let res = fetch(req)
-echo res.code
-echo res.headers
-echo res.body.len
+echo response.code
+echo response.headers
+echo response.body.len
 ```
 
 ## Always use Libcurl

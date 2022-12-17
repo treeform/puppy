@@ -12,8 +12,8 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
 
     request.setHTTPMethod(@(req.verb.toUpperAscii()))
 
-    for header in req.headers:
-      request.setValue(@(header.value), @(header.key))
+    for (k, v) in req.headers:
+      request.setValue(@(v), @(k))
 
     if req.body.len > 0:
       request.setHTTPBody(NSData.dataWithBytes(req.body[0].addr, req.body.len))
@@ -38,7 +38,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
         if key.int == 0:
           break
         let value = dictionary.objectForKey(key)
-        result.headers[$(key.NSString)] = $(value.NSString)
+        result.headers.add(($(key.NSString), $(value.NSString)))
 
       if data.length > 0:
         result.body.setLen(data.length)

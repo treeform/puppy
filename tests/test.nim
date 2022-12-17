@@ -49,6 +49,14 @@ block:
   doAssert res.headers.len > 0
   doAssert res.body != ""
 
+block:
+  discard fetch(Request(
+    url: parseUrl("https://www.google.com"),
+    verb: "get",
+    headers: @[Header(key: "User-Agent", value: "Puppy")]
+    )
+  )
+
 when defined(windows):
   block:
     let httpsServer = startProcess(
@@ -153,13 +161,7 @@ try:
 
     block:
       # test empty post
-      let req = Request(
-        url: parseUrl("http://localhost:8080/post"),
-        verb: "post",
-        body: ""
-      )
-      let res = fetch(req)
-      doAssert ($req).startsWith("POST http://localhost:8080/post")
+      let res = post("http://localhost:8080/post")
       doAssert res.code == 200
       doAssert res.body == ""
 

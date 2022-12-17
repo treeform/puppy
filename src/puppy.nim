@@ -1,4 +1,4 @@
-import puppy/common, urlly
+import puppy/common
 
 when defined(windows) and not defined(puppyLibcurl):
   # WinHTTP Windows
@@ -10,7 +10,7 @@ else:
   # LIBCURL Linux
   import puppy/platforms/linux/platform
 
-export common, urlly
+export common
 
 proc addDefaultHeaders(req: Request) =
   if req.headers["user-agent"] == "":
@@ -35,7 +35,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
 proc newRequest*(
   url: string,
   verb = "get",
-  headers = newSeq[Header](),
+  headers = emptyHttpHeaders(),
   timeout: float32 = 60
 ): Request =
   ## Allocates a new request object with defaults.
@@ -45,10 +45,56 @@ proc newRequest*(
   result.headers = headers
   result.timeout = timeout
 
-proc fetch*(url: string, headers = newSeq[Header]()): string =
-  let
-    req = newRequest(url, "get", headers)
-    res = req.fetch()
+proc get*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  timeout: float32 = 60
+): Response =
+  fetch(newRequest(url, "GET", headers, timeout))
+
+proc post*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  body: sink string = "",
+  timeout: float32 = 60
+): Response =
+  let request = newRequest(url, "POST", headers, timeout)
+  request.body = move body
+  fetch(request)
+
+proc put*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  body: sink string = "",
+  timeout: float32 = 60
+): Response =
+  let request = newRequest(url, "PUT", headers, timeout)
+  request.body = move body
+  fetch(request)
+
+proc patch*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  body: sink string = "",
+  timeout: float32 = 60
+): Response =
+  let request = newRequest(url, "PATCH", headers, timeout)
+  request.body = move body
+  fetch(request)
+
+proc delete*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  timeout: float32 = 60
+): Response =
+  fetch(newRequest(url, "DELETE", headers, timeout))
+
+proc fetch*(url: string, headers = emptyHttpHeaders()): string =
+  ## Simple fetch that directly returns the GET response body.
+  ## Raises an exception if anything goes wrong or if the response code
+  ## is not 200. See get, post, put etc for similar calls that return
+  ## a response object.
+  let res = get(url, headers)
   if res.code == 200:
     return res.body
   raise newException(PuppyError,
