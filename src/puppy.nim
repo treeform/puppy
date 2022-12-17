@@ -10,7 +10,7 @@ else:
   # LIBCURL Linux
   import puppy/platforms/linux/platform
 
-export common, urlly
+export common
 
 proc addDefaultHeaders(req: Request) =
   if req.headers["user-agent"] == "":
@@ -35,7 +35,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
 proc newRequest*(
   url: string,
   verb = "get",
-  headers = newSeq[Header](),
+  headers = emptyHttpHeaders(),
   timeout: float32 = 60
 ): Request =
   ## Allocates a new request object with defaults.
@@ -45,7 +45,7 @@ proc newRequest*(
   result.headers = headers
   result.timeout = timeout
 
-proc fetch*(url: string, headers = newSeq[Header]()): string =
+proc fetch*(url: string, headers = emptyHttpHeaders()): string =
   let
     req = newRequest(url, "get", headers)
     res = req.fetch()

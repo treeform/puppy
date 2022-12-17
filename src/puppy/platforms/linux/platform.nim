@@ -28,8 +28,8 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   var strings: seq[string]
   strings.add $req.url
   strings.add req.verb.toUpperAscii()
-  for header in req.headers:
-    strings.add header.key & ": " & header.value
+  for (k, v) in req.headers:
+    strings.add k & ": " & v
 
   let curl = easy_init()
 
@@ -89,7 +89,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     for headerLine in headerData.split(CRLF):
       let arr = headerLine.split(":", 1)
       if arr.len == 2:
-        result.headers.add(Header(key: arr[0].strip(), value: arr[1].strip()))
+        result.headers.add((arr[0].strip(), arr[1].strip()))
     result.body = bodyWrap.str
     if result.headers["Content-Encoding"] == "gzip":
       try:
