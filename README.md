@@ -53,14 +53,14 @@ Use request/response instead.
 ```nim
 Request* = ref object
   url*: Url
-  headers*: seq[Header]
+  headers*: HttpHeaders
   timeout*: float32
   verb*: string
   body*: string
 
 Response* = ref object
   url*: Url
-  headers*: seq[Header]
+  headers*: HttpHeaders
   code*: int
   body*: string
 ```
@@ -68,15 +68,13 @@ Response* = ref object
 Usage example:
 
 ```nim
-let req = Request(
-  url: parseUrl("http://www.istrolid.com"),
-  verb: "get",
-  headers: @[Header(key: "Auth", value: "1")]
-)
-let res = fetch(req)
-echo res.code
-echo res.headers
-echo res.body.len
+let request = newRequest("http://www.istrolid.com")
+request.headers["Auth"] = "1"
+
+let response = fetch(request)
+echo response.code
+echo response.headers
+echo response.body.len
 ```
 
 ## Always use Libcurl
