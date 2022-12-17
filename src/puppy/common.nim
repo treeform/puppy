@@ -31,3 +31,6 @@ proc `$`*(req: Request): string =
 
 converter toWebby*(headers: seq[Header]): HttpHeaders =
   cast[HttpHeaders](headers)
+
+converter toWebby*(header: Header): (string, string) =
+  (header.key, header.value)
