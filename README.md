@@ -37,7 +37,7 @@ import puppy
 
 echo fetch(
   "http://neverssl.com/",
-  headers = @[Header(key: "User-Agent", value: "Nim 1.0")]
+  headers = @[("User-Agent", "Nim 1.0")]
 )
 ```
 
