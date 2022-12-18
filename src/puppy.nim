@@ -59,7 +59,7 @@ proc post*(
   timeout: float32 = 60
 ): Response =
   let request = newRequest(url, "POST", headers, timeout)
-  request.body = move body
+  request.body = body
   fetch(request)
 
 proc put*(
@@ -69,7 +69,7 @@ proc put*(
   timeout: float32 = 60
 ): Response =
   let request = newRequest(url, "PUT", headers, timeout)
-  request.body = move body
+  request.body = body
   fetch(request)
 
 proc patch*(
@@ -79,7 +79,7 @@ proc patch*(
   timeout: float32 = 60
 ): Response =
   let request = newRequest(url, "PATCH", headers, timeout)
-  request.body = move body
+  request.body = body
   fetch(request)
 
 proc delete*(
