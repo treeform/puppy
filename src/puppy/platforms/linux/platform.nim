@@ -1,5 +1,10 @@
 import libcurl, puppy/common, std/strutils, zippy
 
+block:
+  let ret = global_init(GLOBAL_DEFAULT)
+  if ret != E_OK:
+    raise newException(Defect, $easy_strerror(ret))
+
 type StringWrap = object
   ## As strings are value objects they need
   ## some sort of wrapper to be passed to C.
