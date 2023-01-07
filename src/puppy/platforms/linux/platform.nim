@@ -74,8 +74,10 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   # On Windows look for cacert.pem.
   when defined(windows):
     discard curl.easy_setopt(OPT_CAINFO, "cacert.pem".cstring)
-  # Follow redirects by default.
+
+  # Follow up to 10 redirects by default.
   discard curl.easy_setopt(OPT_FOLLOWLOCATION, 1)
+  discard curl.easy_setopt(OPT_MAXREDIRS, 10)
 
   if req.allowAnyHttpsCertificate:
     discard curl.easy_setopt(OPT_SSL_VERIFYPEER, 0)
