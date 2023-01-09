@@ -1,6 +1,11 @@
 import libcurl, puppy/common, std/strutils, zippy
 
 block:
+  ## If you did not already call curl_global_init then
+  ## curl_easy_init does it automatically.
+  ## This may be lethal in multi-threaded cases since curl_global_init
+  ## is not thread-safe.
+  ## https://curl.se/libcurl/c/curl_easy_init.html
   let ret = global_init(GLOBAL_DEFAULT)
   if ret != E_OK:
     raise newException(Defect, $easy_strerror(ret))
