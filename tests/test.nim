@@ -194,5 +194,14 @@ try:
       doAssert res.headers["1"] == "a"
       doAssert res.headers["2"] == "b"
 
+    block:
+      # test redirect
+      let res = fetch(Request(
+        url: parseUrl("http://localhost:8080/redirect"),
+        verb: "get",
+      ))
+      doAssert res.code == 200
+      doAssert res.url == "http://localhost:8080/ok"
+
 finally:
   debugServer.terminate()

@@ -51,3 +51,5 @@ objc:
   ): NSData
   proc statusCode*(self: NSHTTPURLResponse): int
   proc allHeaderFields*(self: NSHTTPURLResponse): NSDictionary
+  proc URL*(self: NSHTTPURLResponse): NSURL
+  proc absoluteString*(self: NSURL): NSString

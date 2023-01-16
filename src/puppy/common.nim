@@ -17,6 +17,7 @@ type
 
   Response* = ref object
     headers*: HttpHeaders
+    url*: string
     code*: int
     body*: string
 

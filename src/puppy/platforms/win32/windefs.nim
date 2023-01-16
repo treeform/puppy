@@ -42,6 +42,7 @@ const
   ERROR_INTERNET_SEC_CERT_REVOKED* = 12170
 
   WINHTTP_OPTION_SECURITY_FLAGS* = 31
+  WINHTTP_OPTION_URL* = 34
   SECURITY_FLAG_IGNORE_UNKNOWN_CA* = 0x00000100
   # SECURITY_FLAG_IGNORE_WRONG_USAGE* = 0x00000200
   SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE* = 0x00000200
@@ -138,6 +139,13 @@ proc WinHttpQueryHeaders*(
   lpBuffer: LPVOID,
   lpdwBufferLength: LPDWORD,
   lpdwIndex: LPDWORD
+): BOOL {.dynlib: "winhttp".}
+
+proc WinHttpQueryOption*(
+  hRequest: HINTERNET,
+  dwOption: DWORD,
+  lpBuffer: LPVOID,
+  lpdwBufferLength: LPDWORD,
 ): BOOL {.dynlib: "winhttp".}
 
 proc WinHttpReadData*(

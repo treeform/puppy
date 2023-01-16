@@ -75,6 +75,11 @@ proc cb(req: Request) {.async.} =
     await req.respond(Http200, $req.url, headers)
     return
 
+  if req.url.path == "/redirect":
+    let headers = newHttpHeaders([("Location", "/ok")])
+    await req.respond(Http301, "", headers)
+    return
+
   await req.respond(Http404, "Not found.")
 
 waitFor server.serve(Port(8080), cb)
