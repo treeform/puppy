@@ -187,7 +187,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
       responseUrlBytes: DWORD
       responseUrlBuf: string
 
-    # Determine how big the header buffer needs to be
+    # Determine how big the URL buffer needs to be
     discard WinHttpQueryOption(
       hRequest,
       WINHTTP_OPTION_URL,
@@ -196,12 +196,12 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     )
     var errorCode = GetLastError()
     if errorCode == ERROR_INSUFFICIENT_BUFFER: # Expected!
-      # Set the header buffer to the correct size and inclue a null terminator
+      # Set the URL buffer to the correct size and inclue a null terminator
       responseUrlBuf.setLen(responseUrlBytes)
     else:
       raise newException(PuppyError, "WinHttpQueryOption error: " & $errorCode)
 
-    # Read the headers into the buffer
+    # Read the URL into the buffer
     if WinHttpQueryOption(
       hRequest,
       WINHTTP_OPTION_URL,
