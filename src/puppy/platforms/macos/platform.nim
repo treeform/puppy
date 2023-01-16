@@ -30,6 +30,8 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     if response.int != 0:
       result.code = response.statusCode
 
+      result.url = $(response.URL.absoluteString)
+
       let
         dictionary = response.allHeaderFields
         keyEnumerator = dictionary.keyEnumerator

@@ -42,6 +42,8 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     strings.add k & ": " & v
 
   let curl = easy_init()
+  defer:
+    curl.easy_cleanup()
 
   discard curl.easy_setopt(OPT_URL, strings[0].cstring)
   discard curl.easy_setopt(OPT_CUSTOMREQUEST, strings[1].cstring)
@@ -92,16 +94,20 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     ret = curl.easy_perform()
     headerData = headerWrap.str
 
-  curl.easy_cleanup()
-
   if ret == E_OK:
     var httpCode: uint32
     discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
     result.code = httpCode.int
+
+    var responseUrl: cstring
+    discard curl.easy_getinfo(INFO_EFFECTIVE_URL, responseUrl.addr)
+    result.url = $responseUrl
+
     for headerLine in headerData.split(CRLF):
       let arr = headerLine.split(":", 1)
       if arr.len == 2:
         result.headers.add((arr[0].strip(), arr[1].strip()))
+    
     result.body = bodyWrap.str
     if result.headers["Content-Encoding"] == "gzip":
       try:
