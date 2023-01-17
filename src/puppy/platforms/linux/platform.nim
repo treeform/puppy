@@ -92,27 +92,28 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
     ret = curl.easy_perform()
     headerData = headerWrap.str
 
-  curl.easy_cleanup()
+  try:
+    if ret == E_OK:
+      var httpCode: uint32
+      discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
+      result.code = httpCode.int
 
-  if ret == E_OK:
-    var httpCode: uint32
-    discard curl.easy_getinfo(INFO_RESPONSE_CODE, httpCode.addr)
-    result.code = httpCode.int
+      var responseUrl: cstring
+      discard curl.easy_getinfo(INFO_EFFECTIVE_URL, responseUrl.addr)
+      result.url = $responseUrl
 
-    var responseUrl: cstring
-    discard curl.easy_getinfo(INFO_EFFECTIVE_URL, responseUrl.addr)
-    result.url = $responseUrl
+      for headerLine in headerData.split(CRLF):
+        let arr = headerLine.split(":", 1)
+        if arr.len == 2:
+          result.headers.add((arr[0].strip(), arr[1].strip()))
 
-    for headerLine in headerData.split(CRLF):
-      let arr = headerLine.split(":", 1)
-      if arr.len == 2:
-        result.headers.add((arr[0].strip(), arr[1].strip()))
-
-    result.body = bodyWrap.str
-    if result.headers["Content-Encoding"] == "gzip":
-      try:
-        result.body = uncompress(result.body, dfGzip)
-      except ZippyError as e:
-        raise newException(PuppyError, "Error uncompressing response", e)
-  else:
-    raise newException(PuppyError, $easy_strerror(ret))
+      result.body = bodyWrap.str
+      if result.headers["Content-Encoding"] == "gzip":
+        try:
+          result.body = uncompress(result.body, dfGzip)
+        except ZippyError as e:
+          raise newException(PuppyError, "Error uncompressing response", e)
+    else:
+      raise newException(PuppyError, $easy_strerror(ret))
+  finally:
+    curl.easy_cleanup()
