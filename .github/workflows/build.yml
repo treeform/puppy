@@ -30,5 +30,6 @@ jobs:
     - run: nimble test -y --gc:refc
     - run: nimble test -y --gc:arc
     - run: nimble test -y --gc:orc
+    - run: nimble test -d:release -y --gc:orc
 
     - run: nimble test -y --gc:arc --threads:on
