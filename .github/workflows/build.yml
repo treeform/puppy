@@ -6,21 +6,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        nim-version: ['1.2.2', '1.2.x', '1.4.x', 'stable']
+        nim-version: ['binary:1.2.2', 'binary:1.2', 'binary:1.4', 'binary:stable']
         include:
-          - nim-version: '1.4.x'
+          - nim-version: 'binary:1.4'
             gc_orc: true
-          - nim-version: 'stable'
+          - nim-version: 'binary:stable'
             gc_orc: true
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
-    - uses: jiro4989/setup-nim-action@v1
+    - uses: iffy/install-nim@v4
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        nim-version: ${{ matrix.nim-version }}
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        version: ${{ matrix.nim-version }}
 
     - run: nimble install -y libcurl
     - run: nimble install -y zippy
