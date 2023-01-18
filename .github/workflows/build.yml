@@ -6,7 +6,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        nim-version: ['binary:1.2.2', 'binary:1.2', 'binary:1.4', 'binary:stable']
+        nim-version: ['1.2.2', 'binary:1.2', 'binary:1.4', 'binary:stable']
         include:
           - nim-version: 'binary:1.4'
             gc_orc: true
