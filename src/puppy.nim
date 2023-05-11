@@ -30,7 +30,7 @@ proc fetch*(req: Request): Response {.raises: [PuppyError].} =
   if req.timeout == 0:
     req.timeout = 60
 
-  platform.fetch(req)
+  return platform.fetch(req)
 
 proc newRequest*(
   url: string,
