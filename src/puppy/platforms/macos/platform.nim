@@ -1,6 +1,6 @@
 import macdefs, objc, puppy/common, std/strutils
 
-proc fetch*(req: Request): Response {.raises: [PuppyError].} =
+proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
 
   autoreleasepool:

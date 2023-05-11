@@ -15,7 +15,7 @@ type StringWrap = object
   ## some sort of wrapper to be passed to C.
   str: string
 
-proc fetch*(req: Request): Response {.raises: [PuppyError].} =
+proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
 
   {.push stackTrace: off.}

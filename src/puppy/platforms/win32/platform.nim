@@ -1,6 +1,6 @@
 import puppy/common, std/strutils, utils, windefs, zippy
 
-proc fetch*(req: Request): Response {.raises: [PuppyError].} =
+proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
 
   var hSession, hConnect, hRequest: HINTERNET
