@@ -1,0 +1,8 @@
+CRLF	puppy/common.html#CRLF	common: CRLF	
+Request	puppy/common.html#Request	common: Request	
+Response	puppy/common.html#Response	common: Response	
+PuppyError	puppy/common.html#PuppyError	common: PuppyError	
+Header	puppy/common.html#Header	common: Header	
+`$`	puppy/common.html#$,Request	common: `$`(req: Request): string	
+toWebby	puppy/common.html#toWebby.c,seq[Header]	common: toWebby(headers: seq[Header]): HttpHeaders	
+toWebby	puppy/common.html#toWebby.c,Header	common: toWebby(header: Header): (string, string)	
