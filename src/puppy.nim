@@ -2,7 +2,7 @@ import puppy/common
 
 when defined(nimdoc):
   # Used to work around the doc generator.
-  proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
+  proc internalFetch(req: Request): Response {.raises: [PuppyError].} =
     discard
 elif defined(windows) and not defined(puppyLibcurl):
   # WinHTTP Windows
