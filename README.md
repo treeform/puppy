@@ -6,7 +6,7 @@
 
 ![Github Actions](https://github.com/treeform/puppy/workflows/Github%20Actions/badge.svg)
 
-[API reference](https://nimdocs.com/treeform/puppy)
+[API reference](https://treeform.github.io/puppy)
 
 ## About
 
