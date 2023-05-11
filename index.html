@@ -124,11 +124,6 @@ window.addEventListener('DOMContentLoaded', main);
     title="get(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60): Response">get(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60): Response</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">internalFetch
-      <li><a class="reference" href="#internalFetch%2CRequest"
-    title="internalFetch(req: Request): Response">internalFetch(req: Request): Response</a></li>
-
-  </ul>
   <ul class="simple nested-toc-section">newRequest
       <li><a class="reference" href="#newRequest%2Cstring%2Cstring%2Cfloat32"
     title="newRequest(url: string; verb = &quot;get&quot;; headers = emptyHttpHeaders();
@@ -238,18 +233,6 @@ class="link-seesrc" target="_blank">Source</a>
 
 </dd>
 </div>
-<div id="internalFetch,Request">
-<dt><pre><span class="Keyword">proc</span> <a href="#internalFetch%2CRequest"><span class="Identifier">internalFetch</span></a><span class="Other">(</span><span class="Identifier">req</span><span class="Other">:</span> <a href="puppy/common.html#Request"><span class="Identifier">Request</span></a><span class="Other">)</span><span class="Other">:</span> <a href="puppy/common.html#Response"><span class="Identifier">Response</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><a href="puppy/common.html#PuppyError"><span class="Identifier">PuppyError</span></a><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
-<dd>
-
-
-&nbsp;&nbsp;<a
-href="https://github.com/treeform/puppy/tree/master/src/puppy.nim#L5"
-class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/treeform/puppy/edit/devel/src/puppy.nim#L5" class="link-seesrc" target="_blank" >Edit</a>
-
-</dd>
-</div>
 <div id="newRequest,string,string,float32">
 <dt><pre><span class="Keyword">proc</span> <a href="#newRequest%2Cstring%2Cstring%2Cfloat32"><span class="Identifier">newRequest</span></a><span class="Other">(</span><span class="Identifier">url</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">verb</span> <span class="Other">=</span> <span class="StringLit">&quot;get&quot;</span><span class="Other">;</span> <span class="Identifier">headers</span> <span class="Other">=</span> <span class="Identifier">emptyHttpHeaders</span><span class="Other">(</span><span class="Other">)</span><span class="Other">;</span>
                 <span class="Identifier">timeout</span><span class="Other">:</span> <span class="Identifier">float32</span> <span class="Other">=</span> <span class="DecNumber">60</span><span class="Other">)</span><span class="Other">:</span> <a href="puppy/common.html#Request"><span class="Identifier">Request</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">CatchableError</span><span class="Other">]</span><span class="Other">,</span>
@@ -321,7 +304,7 @@ class="link-seesrc" target="_blank">Source</a>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2023-05-11 00:57:20 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2023-05-11 01:00:55 UTC</small>
       </div>
     </div>
   </div>
