@@ -57,6 +57,11 @@ block:
     )
   )
 
+block:
+  let response = head("https://www.google.com")
+  doAssert response.code == 200
+  doAssert response.body.len == 0
+
 when defined(windows):
   block:
     let httpsServer = startProcess(

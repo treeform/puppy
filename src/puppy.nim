@@ -93,6 +93,13 @@ proc delete*(
 ): Response =
   fetch(newRequest(url, "DELETE", headers, timeout))
 
+proc head*(
+  url: string,
+  headers = emptyHttpHeaders(),
+  timeout: float32 = 60
+): Response =
+  fetch(newRequest(url, "HEAD", headers, timeout))
+
 proc fetch*(url: string, headers = emptyHttpHeaders()): string =
   ## Simple fetch that directly returns the GET response body.
   ## Raises an exception if anything goes wrong or if the response code
