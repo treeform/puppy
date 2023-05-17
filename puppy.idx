@@ -5,4 +5,5 @@ post	puppy.html#post,string,sinkstring,float32	puppy: post(url: string; headers 
 put	puppy.html#put,string,sinkstring,float32	puppy: put(url: string; headers = emptyHttpHeaders(); body: sink string = &quot;&quot;;\n    timeout: float32 = 60): Response	
 patch	puppy.html#patch,string,sinkstring,float32	puppy: patch(url: string; headers = emptyHttpHeaders(); body: sink string = &quot;&quot;;\n      timeout: float32 = 60): Response	
 delete	puppy.html#delete,string,float32	puppy: delete(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60): Response	
+head	puppy.html#head,string,float32	puppy: head(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60): Response	
 fetch	puppy.html#fetch,string	puppy: fetch(url: string; headers = emptyHttpHeaders()): string	
