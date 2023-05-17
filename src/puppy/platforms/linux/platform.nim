@@ -65,7 +65,9 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
 
     discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
-    if req.verb.toUpperAscii() == "POST" or req.body.len > 0:
+    if req.verb.toUpperAscii() == "HEAD":
+      discard curl.easy_setopt(OPT_NOBODY, 1)
+    elif req.verb.toUpperAscii() == "POST" or req.body.len > 0:
       discard curl.easy_setopt(OPT_POSTFIELDSIZE, req.body.len)
       discard curl.easy_setopt(OPT_POSTFIELDS, req.body.cstring)
 
