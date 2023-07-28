@@ -116,7 +116,7 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
     ) == 0:
 
       let error = GetLastError()
-      if error in {
+      if error in [
         ERROR_WINHTTP_SECURE_FAILURE,
         ERROR_INTERNET_INVALID_CA,
         ERROR_INTERNET_SEC_CERT_DATE_INVALID,
@@ -126,7 +126,7 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
         ERROR_INTERNET_SEC_CERT_REV_FAILED,
         ERROR_INTERNET_SEC_CERT_REVOKED,
         ERROR_INTERNET_SEC_CERT_ERRORS
-      } and req.allowAnyHttpsCertificate:
+      ] and req.allowAnyHttpsCertificate:
         # If this is a certificate error but we should allow any HTTPS cert,
         # we need to set some options and retry sending the request.
         # https://stackoverflow.com/questions/19338395/how-do-you-use-winhttp-to-do-ssl-with-a-self-signed-cert
