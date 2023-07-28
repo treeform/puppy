@@ -114,7 +114,7 @@ window.addEventListener('DOMContentLoaded', main);
   timeout*: float32
   verb*: string
   body*: string
-  when false or true:
+  when defined(puppyLibcurl) or (defined(windows) or not defined(macosx)):
       allowAnyHttpsCertificate*: bool">Request</a></li>
   <li><a class="reference" href="#Response"
     title="Response = ref object
@@ -207,7 +207,7 @@ class="link-seesrc" target="_blank">Source</a>
   <span class="Identifier">timeout</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">float32</span>
   <span class="Identifier">verb</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
   <span class="Identifier">body</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Keyword">when</span> <span class="DecNumber">false</span> <span class="Keyword">or</span> <span class="DecNumber">true</span><span class="Other">:</span>
+  <span class="Keyword">when</span> <span class="Identifier">defined</span><span class="Other">(</span><span class="Identifier">puppyLibcurl</span><span class="Other">)</span> <span class="Keyword">or</span> <span class="Other">(</span><span class="Identifier">defined</span><span class="Other">(</span><span class="Identifier">windows</span><span class="Other">)</span> <span class="Keyword">or</span> <span class="Keyword">not</span> <span class="Identifier">defined</span><span class="Other">(</span><span class="Identifier">macosx</span><span class="Other">)</span><span class="Other">)</span><span class="Other">:</span>
       <span class="Identifier">allowAnyHttpsCertificate</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
 
   </pre></dt>
@@ -311,7 +311,7 @@ class="link-seesrc" target="_blank">Source</a>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2023-05-17 23:44:11 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2023-07-28 18:29:12 UTC</small>
       </div>
     </div>
   </div>
