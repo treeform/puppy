@@ -27,25 +27,25 @@ const
 
 objc:
   proc code*(self: NSError): int
-  proc dataWithBytes*(class: typedesc[NSData], _: pointer, length: int): NSData
+  proc dataWithBytes*(class: typedesc[NSData], x: pointer, length: int): NSData
   proc bytes*(self: NSData): pointer
   proc length*(self: NSData): int
   proc keyEnumerator*(self: NSDictionary): NSEnumerator
-  proc objectForKey*(self: NSDictionary, _: ID): ID
+  proc objectForKey*(self: NSDictionary, x: ID): ID
   proc nextObject*(self: NSEnumerator): ID
-  proc URLWithString*(class: typedesc[NSURL], _: NSString): NSURL
+  proc URLWithString*(class: typedesc[NSURL], x: NSString): NSURL
   proc requestWithURL*(
     class: typedesc[NSMutableURLRequest],
-    _: NSURL,
+    x: NSURL,
     cachePolicy: NSURLRequestCachePolicy,
     timeoutInterval: NSTimeInterval
   ): NSMutableURLRequest
-  proc setHTTPMethod*(self: NSMutableURLRequest, _: NSString)
-  proc setValue*(self: NSMutableURLRequest, _: NSString, forHTTPHeaderField: NSString)
-  proc setHTTPBody*(self: NSMutableURLRequest, _: NSData)
+  proc setHTTPMethod*(self: NSMutableURLRequest, x: NSString)
+  proc setValue*(self: NSMutableURLRequest, x: NSString, forHTTPHeaderField: NSString)
+  proc setHTTPBody*(self: NSMutableURLRequest, x: NSData)
   proc sendSynchronousRequest*(
     class: typedesc[NSURLConnection],
-    _: NSMutableURLRequest,
+    x: NSMutableURLRequest,
     returningResponse: ptr NSHTTPURLResponse,
     error: ptr NSError
   ): NSData
