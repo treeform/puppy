@@ -1,9 +1,11 @@
-fetch	puppy.html#fetch,Request	puppy: fetch(req: Request): Response	
-newRequest	puppy.html#newRequest,string,string,float32	puppy: newRequest(url: string; verb = &quot;get&quot;; headers = emptyHttpHeaders();\n           timeout: float32 = 60): Request	
-get	puppy.html#get,string,float32	puppy: get(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60): Response	
-post	puppy.html#post,string,sinkstring,float32	puppy: post(url: string; headers = emptyHttpHeaders(); body: sink string = &quot;&quot;;\n     timeout: float32 = 60): Response	
-put	puppy.html#put,string,sinkstring,float32	puppy: put(url: string; headers = emptyHttpHeaders(); body: sink string = &quot;&quot;;\n    timeout: float32 = 60): Response	
-patch	puppy.html#patch,string,sinkstring,float32	puppy: patch(url: string; headers = emptyHttpHeaders(); body: sink string = &quot;&quot;;\n      timeout: float32 = 60): Response	
-delete	puppy.html#delete,string,float32	puppy: delete(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60): Response	
-head	puppy.html#head,string,float32	puppy: head(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60): Response	
-fetch	puppy.html#fetch,string	puppy: fetch(url: string; headers = emptyHttpHeaders()): string	
+nimTitle	puppy	puppy.html	module src/puppy		0
+nim	fetch	puppy.html#fetch,Request	proc fetch(req: Request): Response		26
+nim	newRequest	puppy.html#newRequest,string,string,float32	proc newRequest(url: string; verb = "get"; headers = emptyHttpHeaders();\n           timeout: float32 = 60.0): Request		39
+nim	get	puppy.html#get,string,float32	proc get(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60.0): Response		52
+nim	post	puppy.html#post,string,sinkstring,float32	proc post(url: string; headers = emptyHttpHeaders(); body: sink string = "";\n     timeout: float32 = 60.0): Response		59
+nim	put	puppy.html#put,string,sinkstring,float32	proc put(url: string; headers = emptyHttpHeaders(); body: sink string = "";\n    timeout: float32 = 60.0): Response		69
+nim	patch	puppy.html#patch,string,sinkstring,float32	proc patch(url: string; headers = emptyHttpHeaders(); body: sink string = "";\n      timeout: float32 = 60.0): Response		79
+nim	delete	puppy.html#delete,string,float32	proc delete(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60.0): Response		89
+nim	head	puppy.html#head,string,float32	proc head(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60.0): Response		96
+nim	fetch	puppy.html#fetch,string	proc fetch(url: string; headers = emptyHttpHeaders()): string		103
+nimgrp	fetch	puppy.html#fetch-procs-all	proc		26

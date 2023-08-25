@@ -1,8 +1,10 @@
-CRLF	puppy/common.html#CRLF	common: CRLF	
-Request	puppy/common.html#Request	common: Request	
-Response	puppy/common.html#Response	common: Response	
-PuppyError	puppy/common.html#PuppyError	common: PuppyError	
-Header	puppy/common.html#Header	common: Header	
-`$`	puppy/common.html#$,Request	common: `$`(req: Request): string	
-toWebby	puppy/common.html#toWebby.c,seq[Header]	common: toWebby(headers: seq[Header]): HttpHeaders	
-toWebby	puppy/common.html#toWebby.c,Header	common: toWebby(header: Header): (string, string)	
+nimTitle	common	puppy/common.html	module src/puppy/common		0
+nim	CRLF	puppy/common.html#CRLF	const CRLF		5
+nim	Request	puppy/common.html#Request	type Request		8
+nim	Response	puppy/common.html#Response	type Response		18
+nim	PuppyError	puppy/common.html#PuppyError	object PuppyError		24
+nim	Header	puppy/common.html#Header	object Header		26
+nim	`$`	puppy/common.html#$,Request	proc `$`(req: Request): string		30
+nim	toWebby	puppy/common.html#toWebby.c,seq[Header]	converter toWebby(headers: seq[Header]): HttpHeaders		33
+nim	toWebby	puppy/common.html#toWebby.c,Header	converter toWebby(header: Header): (string, string)		36
+nimgrp	towebby	puppy/common.html#toWebby-converters-all	converter		33
