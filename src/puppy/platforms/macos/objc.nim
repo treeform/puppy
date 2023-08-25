@@ -113,8 +113,8 @@ macro objc*(body: untyped) =
             fixArg.removeSuffix("_mangle")
             sel.add fixArg
           else:
-            if argName != "_":
-              error("Second arugment needs to be _.", arg)
+            if argName != "x":
+              error("Second arugment needs to be x.", arg)
           sel.add ":"
 
           # Add second name and type as is.
