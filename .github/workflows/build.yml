@@ -24,7 +24,7 @@ jobs:
 
     - run: nimble install -y libcurl
     - run: nimble install -y zippy
-    - run: nimble install -y urlly
+    - run: nimble install -y webby
     - run: nim c tests/debug_server.nim
 
     - run: nimble test -y --gc:refc

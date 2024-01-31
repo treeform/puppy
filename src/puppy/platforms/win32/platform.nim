@@ -61,8 +61,8 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
       openRequestFlags = openRequestFlags or WINHTTP_FLAG_SECURE
 
     var objectName = req.url.path
-    if req.url.search != "":
-      objectName &= "?" & req.url.search
+    if req.url.query.len > 0:
+      objectName &= "?" & $req.url.query
 
     let
       wideVerb = req.verb.toUpperAscii().wstr()
