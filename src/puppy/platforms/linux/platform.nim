@@ -1,4 +1,4 @@
-import libcurl, puppy/common, std/strutils, zippy
+import libcurl, puppy/common, std/strutils, zippy, webby/httpheaders
 
 block:
   ## If you did not already call curl_global_init then
@@ -106,7 +106,11 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
       for headerLine in headerData.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
-          result.headers.add((arr[0].strip(), arr[1].strip()))
+          when (NimMajor, NimMinor, NimPatch) >= (1, 4, 8):
+            result.add((arr[0].strip(), arr[1].strip()))
+          else:
+            let tmp = cast[ptr HttpHeaders](result.headers.addr)
+            tmp[].toBase.add((arr[0].strip(), arr[1].strip()))
 
       result.body = bodyWrap.str
       if result.headers["Content-Encoding"] == "gzip":
