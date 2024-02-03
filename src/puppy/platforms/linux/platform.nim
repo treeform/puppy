@@ -107,7 +107,7 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
           when (NimMajor, NimMinor, NimPatch) >= (1, 4, 8):
-            result.add((arr[0].strip(), arr[1].strip()))
+            result.headers.add((arr[0].strip(), arr[1].strip()))
           else:
             let tmp = cast[ptr HttpHeaders](result.headers.addr)
             tmp[].toBase.add((arr[0].strip(), arr[1].strip()))
