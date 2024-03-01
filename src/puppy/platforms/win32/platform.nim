@@ -1,4 +1,5 @@
 import puppy/common, std/strutils, utils, windefs, zippy
+from winversion import getWindowsVersionEx
 
 proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
@@ -6,10 +7,13 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
   var hSession, hConnect, hRequest: HINTERNET
   try:
     let wideUserAgent = req.headers["user-agent"].wstr()
-
+    {.cast(raises:[]).}:
+      let infoEx = getWindowsVersionEx()
+    let lessThan63 = infoEx.dwMajorVersion < 6 or infoEx.dwMajorVersion == 6 and infoEx.dwMinorVersion <= 3
+    let dwAccessType = if lessThan63: WINHTTP_ACCESS_TYPE_DEFAULT_PROXY else: WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY
     hSession = WinHttpOpen(
       cast[ptr WCHAR](wideUserAgent[0].unsafeAddr),
-      WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+      dwAccessType.DWORD,
       nil,
       nil,
       0
