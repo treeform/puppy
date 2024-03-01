@@ -65,8 +65,8 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
       openRequestFlags = openRequestFlags or WINHTTP_FLAG_SECURE
 
     var objectName = req.url.path
-    if req.url.search != "":
-      objectName &= "?" & req.url.search
+    if req.url.query.len > 0:
+      objectName &= "?" & $req.url.query
 
     let
       wideVerb = req.verb.toUpperAscii().wstr()
@@ -259,10 +259,11 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
       if line != "":
         let parts = line.split(":", 1)
         if parts.len == 2:
-          result.headers.add((
-            parts[0].strip(),
-            parts[1].strip()
-          ))
+          when (NimMajor, NimMinor, NimPatch) >= (1, 4, 8):
+            result.headers.add((parts[0].strip(), parts[1].strip()))
+          else:
+            let tmp = cast[ptr HttpHeaders](result.headers.addr)
+            tmp[].toBase.add((parts[0].strip(), parts[1].strip()))
 
     var i: int
     result.body.setLen(8192)

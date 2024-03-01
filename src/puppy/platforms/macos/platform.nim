@@ -39,8 +39,10 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
         let key = keyEnumerator.nextObject
         if key.int == 0:
           break
-        let value = dictionary.objectForKey(key)
-        result.headers.add(($(key.NSString), $(value.NSString)))
+        let
+          value = dictionary.objectForKey(key)
+          tmp = cast[ptr HttpHeaders](result.headers.addr)
+        tmp[].toBase.add(($(key.NSString), $(value.NSString)))
 
       if data.length > 0:
         result.body.setLen(data.length)

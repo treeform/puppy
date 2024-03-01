@@ -1,4 +1,4 @@
-import libcurl, puppy/common, std/strutils, zippy
+import libcurl, puppy/common, std/strutils, zippy, webby/httpheaders
 
 block:
   ## If you did not already call curl_global_init then
@@ -15,25 +15,25 @@ type StringWrap = object
   ## some sort of wrapper to be passed to C.
   str: string
 
+{.push stackTrace: off.}
+
+proc curlWriteFn(
+  buffer: cstring,
+  size: int,
+  count: int,
+  outstream: pointer
+): int {.cdecl.} =
+  let
+    outbuf = cast[ptr StringWrap](outstream)
+    i = outbuf.str.len
+  outbuf.str.setLen(outbuf.str.len + count)
+  copyMem(outbuf.str[i].addr, buffer, count)
+  result = size * count
+
+{.pop.}
+
 proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
   result = Response()
-
-  {.push stackTrace: off.}
-
-  proc curlWriteFn(
-    buffer: cstring,
-    size: int,
-    count: int,
-    outstream: pointer
-  ): int {.cdecl.} =
-    let
-      outbuf = cast[ptr StringWrap](outstream)
-      i = outbuf.str.len
-    outbuf.str.setLen(outbuf.str.len + count)
-    copyMem(outbuf.str[i].addr, buffer, count)
-    result = size * count
-
-  {.pop.}
 
   var strings: seq[string]
   strings.add $req.url
@@ -65,9 +65,9 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
 
     discard curl.easy_setopt(OPT_HTTPHEADER, headerList)
 
-    if req.verb.toUpperAscii() == "HEAD":
+    if cmpIgnoreCase(req.verb, "HEAD") == 0:
       discard curl.easy_setopt(OPT_NOBODY, 1)
-    elif req.verb.toUpperAscii() == "POST" or req.body.len > 0:
+    elif cmpIgnoreCase(req.verb, "POST") == 0 or req.body.len > 0:
       discard curl.easy_setopt(OPT_POSTFIELDSIZE, req.body.len)
       discard curl.easy_setopt(OPT_POSTFIELDS, req.body.cstring)
 
@@ -106,7 +106,11 @@ proc internalFetch*(req: Request): Response {.raises: [PuppyError].} =
       for headerLine in headerData.split(CRLF):
         let arr = headerLine.split(":", 1)
         if arr.len == 2:
-          result.headers.add((arr[0].strip(), arr[1].strip()))
+          when (NimMajor, NimMinor, NimPatch) >= (1, 4, 8):
+            result.headers.add((arr[0].strip(), arr[1].strip()))
+          else:
+            let tmp = cast[ptr HttpHeaders](result.headers.addr)
+            tmp[].toBase.add((arr[0].strip(), arr[1].strip()))
 
       result.body = bodyWrap.str
       if result.headers["Content-Encoding"] == "gzip":
