@@ -1,4 +1,4 @@
-nimTitle	common	puppy/common.html	module src/puppy/common		0
+nimTitle	common	puppy/common.html	module puppy/common		0
 nim	CRLF	puppy/common.html#CRLF	const CRLF		5
 nim	Request	puppy/common.html#Request	type Request		8
 nim	Response	puppy/common.html#Response	type Response		18

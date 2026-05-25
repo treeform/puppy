@@ -1,4 +1,4 @@
-nimTitle	puppy	puppy.html	module src/puppy		0
+nimTitle	puppy	puppy.html	module puppy		0
 nim	fetch	puppy.html#fetch,Request	proc fetch(req: Request): Response		26
 nim	newRequest	puppy.html#newRequest,string,string,float32	proc newRequest(url: string; verb = "get"; headers = emptyHttpHeaders();\n           timeout: float32 = 60.0): Request		39
 nim	get	puppy.html#get,string,float32	proc get(url: string; headers = emptyHttpHeaders(); timeout: float32 = 60.0): Response		52
