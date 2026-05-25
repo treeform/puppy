@@ -1,23 +1,27 @@
 name: Github Actions
-on: [push, pull_request]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v5
-    - uses: jiro4989/setup-nim-action@v2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - run: nimble install -y libcurl
-    - run: nimble install -y zippy
-    - run: nimble install -y webby
-    - run: nim c tests/debug_server.nim
-    - run: nimble test -y
+      - uses: actions/checkout@v5
+      - uses: treeform/setup-nim-action@v6
+      - name: Install dependencies
+        shell: bash
+        run: |
+          cd ..
+          nimby install -g "${{ github.event.repository.name }}/${{ github.event.repository.name }}.nimble"
+      - run: nim c tests/debug_server.nim
+      - run: nim r tests/tests.nim
 
